@@ -19,12 +19,14 @@ public class PeerLogic extends Thread {
     private FileSystemManager fileSystemManager;
     private ServerMain serverMain;
     private static Logger log = Logger.getLogger(ServerMain.class.getName());
+    private ArrayList<HostPort> peerList;
+    private int maxConnection;
 
     public PeerLogic(Socket socket, HostPort myPort,
                      HashMap<Socket, BufferedWriter> socketWriter,
                      HashMap<Socket, BufferedReader> socketReader,
                      FileSystemManager fileSystemManager, ServerMain serverMain,
-                     boolean isFirst) {
+                     boolean isFirst, ArrayList<HostPort> peerList, int maxConnection) {
         this.socket = socket;
         this.myPort = myPort;
         this.socketWriter = socketWriter;
@@ -34,6 +36,8 @@ public class PeerLogic extends Thread {
         this.isFirst = isFirst;
         this.serverMain = serverMain;
         this.fileSystemManager = fileSystemManager;
+        this.peerList = peerList;
+        this.maxConnection = maxConnection;
     }
 
     public void run() {
@@ -73,10 +77,14 @@ public class PeerLogic extends Thread {
             switch(message.getString("command")) {
                 case "INVALID_PROTOCOL":
                     log.info(message.getString("message"));
+                    // 不确定
+                    socket.close();
                     break;
 
                 case "CONNECTION_REFUSED":
                     handleHandShakeRefuse(message, out);
+                    // 不确定
+                    socket.close();
                     break;
 
                 case "HANDSHAKE_RESPONSE":
@@ -84,6 +92,8 @@ public class PeerLogic extends Thread {
                     break;
 
                 case "HANDSHAKE_REQUEST":
+                    log.info(message.toJson());
+                    handleHandShakeRequest(message, out);
                     break;
 
                 case "FILE_CREATE_REQUEST":
@@ -106,12 +116,14 @@ public class PeerLogic extends Thread {
                     break;
 
                 case "FILE_DELETE_RESPONSE":
+                    log.info(message.getString("message"));
                     break;
 
                 case "FILE_MODIFY_REQUEST":
                     break;
 
                 case "FILE_MODIFY_RESPONSE":
+                    //不确定
                     log.info(message.getString("message"));
                     break;
 
@@ -156,6 +168,24 @@ public class PeerLogic extends Thread {
     private void handleHandShakeResponse() {
         log.info("Handshake finished");
         syncIt();
+    }
+
+    // handle the hand shake request
+    private void handleHandShakeRequest(Document message, BufferedWriter out) {
+        try {
+            HostPort newOne = new HostPort((Document) message.get("hostPort"));
+            if (peerList.contains(newOne)) {
+                return;
+            } else if (peerList.size() >= maxConnection) {
+                constructConnectionRefuse(out);
+            } else {
+                constructHandShakeResponse(out);
+                peerList.add(newOne);
+                syncIt();
+            }
+        } catch (Exception e) {
+            constructInvalidProtocol(out);
+        }
     }
 
     // handle the file delete request
@@ -219,6 +249,37 @@ public class PeerLogic extends Thread {
             response.append("status", true);
             sendInfo(response, out);
         }
+    }
+
+    // invalid response
+    private void constructInvalidProtocol(BufferedWriter out) {
+        Document response = new Document();
+        response.append("command", "INVALID_PROTOCOL");
+        response.append("message", "message must contain a command field as string");
+        sendInfo(response, out);
+    }
+
+    // connection refuse response
+    private void constructConnectionRefuse(BufferedWriter out) {
+        Document response = new Document();
+        response.append("command", "CONNECTION_REFUSED");
+        response.append("message", "connection limit reached");
+        ArrayList<Document> peers = new ArrayList<>();
+        for (HostPort peer: peerList) {
+            peers.add(peer.toDoc());
+        }
+        response.append("peers", peers);
+        sendInfo(response, out);
+    }
+
+    // connection success
+    private void constructHandShakeResponse(BufferedWriter out) {
+        Document response = new Document();
+        response.append("command", "HANDSHAKE_RESPONSE");
+        Document hostPort = new Document();
+        hostPort.append("host", myPort.toDoc());
+        response.append("hostPort", hostPort);
+        sendInfo(response, out);
     }
 
     // construct file descriptor

@@ -8,15 +8,11 @@ import java.net.Socket;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Queue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
-
 import unimelb.bitbox.util.Configuration;
 import unimelb.bitbox.util.HostPort;
-
 import javax.net.ServerSocketFactory;
 
 public class Peer 
@@ -28,7 +24,6 @@ public class Peer
 	private static ArrayList<HostPort> peerList = new ArrayList<>();
 	private static HashMap<Socket, BufferedWriter> socketWriter= new HashMap<>();
     private static HashMap<Socket, BufferedReader> socketReader= new HashMap<>();
-    private static Queue<HostPort> peerQueue = new LinkedList<>();
 
 	public static void main( String[] args ) throws IOException, NumberFormatException, NoSuchAlgorithmException
     {
@@ -42,7 +37,7 @@ public class Peer
         // make sure that i can handle 20 more request at same time
         ExecutorService tpool = Executors.newFixedThreadPool(maxConnection + peersInfo.length + 20);
 
-        if (peersInfo == null) {
+        if (Configuration.getConfigurationValue("peers").equals("")) {
             log.info("First Peer In The CLUSTER");
             runServer(tpool, sm);
         } else {
@@ -62,7 +57,7 @@ public class Peer
     private static void runClient(HostPort hostPort, ExecutorService tpool, ServerMain sm) throws IOException {
 	    Socket client = new Socket(hostPort.host, hostPort.port);
 	    tpool.execute(new PeerLogic(client, new HostPort(localIp, localPort),
-                socketWriter, socketReader, sm.fileSystemManager, sm, true));
+                socketWriter, socketReader, sm.fileSystemManager, sm, true, peerList, maxConnection));
     }
 
     private static void runServer(ExecutorService tpool, ServerMain sm) throws IOException {
@@ -72,7 +67,7 @@ public class Peer
         while (true) {
             Socket client = socket.accept();
             tpool.execute(new PeerLogic(client, new HostPort(localIp, localPort),
-                    socketWriter, socketReader, sm.fileSystemManager, sm, false));
+                    socketWriter, socketReader, sm.fileSystemManager, sm, false, peerList, maxConnection));
         }
     }
 
