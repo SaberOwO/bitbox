@@ -235,9 +235,9 @@ public class PeerLogic extends Thread {
 
         if (SF_flag){
             boolean File_modify_loder_flag = false;
-            boolean File_cancel_loder_flag = false;
+//            boolean File_cancel_loder_flag = false;
 
-            File_cancel_loder_flag = fileSystemManager.cancelFileLoader(file_pathName);
+//            File_cancel_loder_flag = fileSystemManager.cancelFileLoader(file_pathName);
             File_modify_loder_flag = fileSystemManager.modifyFileLoader(file_pathName, file_md5, file_create_lastModified);
 
             if (File_modify_loder_flag){
@@ -271,12 +271,14 @@ public class PeerLogic extends Thread {
         response.append("pathName", file_pathName);
 
         boolean SF_flag = fileSystemManager.isSafePathName(file_pathName);
+        boolean FN_flag = fileSystemManager.fileNameExists(file_pathName);
+//        boolean FC_flag = fileSystemManager.fileNameExists(file_pathName, file_md5);
 
-        if (SF_flag){
+        if (SF_flag && !FN_flag){
             boolean File_create_loder_flag = false;
-            boolean File_cancel_loder_flag = false;
+//            boolean File_cancel_loder_flag = false;
 
-            File_cancel_loder_flag = fileSystemManager.cancelFileLoader(file_pathName);
+            // File_cancel_loder_flag = fileSystemManager.cancelFileLoader(file_pathName);
 
             File_create_loder_flag = fileSystemManager.createFileLoader(file_pathName, file_md5, file_create_fileSize, file_create_lastModified);
 
