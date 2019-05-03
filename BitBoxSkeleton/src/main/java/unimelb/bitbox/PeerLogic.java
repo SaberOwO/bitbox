@@ -62,10 +62,6 @@ public class PeerLogic extends Thread {
         }
     }
 
-
-
-
-
     private void handleLogic(BufferedReader in, BufferedWriter out) throws IOException, NoSuchAlgorithmException{
         String tempo;
         while((tempo = in.readLine()) != null) {
@@ -236,9 +232,10 @@ public class PeerLogic extends Thread {
 //        boolean FC_flag = fileSystemManager.fileNameExists(file_pathName, file_md5);
 
         if (SF_flag){
-            boolean File_create_loder_flag = false;
             boolean File_modify_loder_flag = false;
+            boolean File_cancel_loder_flag = false;
 
+            File_cancel_loder_flag = fileSystemManager.cancelFileLoader(file_pathName);
             File_modify_loder_flag = fileSystemManager.modifyFileLoader(file_pathName, file_md5, file_create_lastModified);
 
             if (File_modify_loder_flag){
@@ -275,6 +272,9 @@ public class PeerLogic extends Thread {
 
         if (SF_flag){
             boolean File_create_loder_flag = false;
+            boolean File_cancel_loder_flag = false;
+
+            File_cancel_loder_flag = fileSystemManager.cancelFileLoader(file_pathName);
 
             File_create_loder_flag = fileSystemManager.createFileLoader(file_pathName, file_md5, file_create_fileSize, file_create_lastModified);
 
@@ -456,7 +456,7 @@ public class PeerLogic extends Thread {
         }
     }
 
-    // handle file bytes response
+    // handle file bytes request
     private void handleFileBytesRequest(Document message, BufferedWriter out) throws IOException, NoSuchAlgorithmException {
         sendInfo(constructFileByteResponse(message), out);
     }
@@ -478,7 +478,7 @@ public class PeerLogic extends Thread {
         }
     }
 
-    // handle file bytes response
+    // handle file modify response
     private void handleFileModifyRequest(Document message, BufferedWriter out) throws IOException, NoSuchAlgorithmException {
         Document FILE_MODIFY_RESPONSE = constructFileModifyResponse(message);
         sendInfo(FILE_MODIFY_RESPONSE, out);
