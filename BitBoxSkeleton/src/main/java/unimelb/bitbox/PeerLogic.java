@@ -86,40 +86,35 @@ public class PeerLogic extends Thread {
             Document message = Document.parse(tempo);
             switch(message.getString("command")) {
                 case "INVALID_PROTOCOL":
+                    log.info("INVALID_PROTOCOL");
                     log.info(message.getString("message"));
-                    // 不确定
+                    // Nothing needs to handle
                     socket.close();
                     break;
 
                 case "CONNECTION_REFUSED":
+                    log.info("CONNECTION_REFUSED");
+                    log.info(message.getString("message"));
                     handleHandShakeRefuse(message, out);
-                    // 不确定
                     socket.close();
                     break;
 
                 case "HANDSHAKE_RESPONSE":
+                    log.info("HANDSHAKE_RESPONSE");
+                    log.info(message.getString("message"));
                     handleHandShakeResponse();
                     break;
 
                 case "HANDSHAKE_REQUEST":
-                    log.info(message.toJson());
+                    log.info("HANDSHAKE_REQUEST");
+                    log.info(message.getString("message"));
                     handleHandShakeRequest(message, out);
                     break;
 
                 case "FILE_CREATE_REQUEST":
-                    Document FILE_CREATE_RESPONSE = constructFileCreateResponse(message);
-                    sendInfo(FILE_CREATE_RESPONSE, out);
-
-                    if((boolean)FILE_CREATE_RESPONSE.get("status")){
-                        boolean flag_of_shortcut = fileSystemManager.checkShortcut((String)FILE_CREATE_RESPONSE.get("pathname"));
-                        if (flag_of_shortcut){
-                            log.info("File copied from local");
-                        }
-                        else{
-                            Document FIRST_FILE_BYTE_RESPONSE = constructFileByteRequest(message, 0, blockSize);
-                            sendInfo(FIRST_FILE_BYTE_RESPONSE, out);
-                        }
-                    }
+                    log.info("FILE_CREATE_REQUEST");
+                    log.info(message.getString("message"));
+                    handleFileCreateRequest(message, out);
                     break;
 
                 case "FILE_CREATE_RESPONSE":
@@ -231,6 +226,22 @@ public class PeerLogic extends Thread {
 //        };
 //        Thread thread = new Thread(runnable);
 //        thread.start();
+    }
+
+    private void handleFileCreateRequest(Document message, BufferedWriter out) throws IOException, NoSuchAlgorithmException {
+        Document FILE_CREATE_RESPONSE = constructFileCreateResponse(message);
+        sendInfo(FILE_CREATE_RESPONSE, out);
+
+        if((boolean)FILE_CREATE_RESPONSE.get("status")){
+            boolean flag_of_shortcut = fileSystemManager.checkShortcut((String)FILE_CREATE_RESPONSE.get("pathname"));
+            if (flag_of_shortcut){
+                log.info("File copied from local");
+            }
+            else{
+                Document FIRST_FILE_BYTE_RESPONSE = constructFileByteRequest(message, 0, blockSize);
+                sendInfo(FIRST_FILE_BYTE_RESPONSE, out);
+            }
+        }
     }
 
     // handle the hand shake request
@@ -387,6 +398,7 @@ public class PeerLogic extends Thread {
             return response;
         }
     }
+
     // handle the file delete request
     private void handleFileDeleteRequest(Document message, BufferedWriter out) {
         Document response = new Document();
