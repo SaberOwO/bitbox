@@ -196,9 +196,7 @@ public class PeerLogic extends Thread {
     private void constructHandShakeResponse(BufferedWriter out) {
         Document response = new Document();
         response.append("command", "HANDSHAKE_RESPONSE");
-        Document hostPort = new Document();
-        hostPort.append("host", myPort.toDoc());
-        response.append("hostPort", hostPort);
+        response.append("hostPort", myPort.toDoc());
         sendInfo(response, out);
     }
 
