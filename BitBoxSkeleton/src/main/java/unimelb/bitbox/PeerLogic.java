@@ -135,8 +135,8 @@ public class PeerLogic extends Thread {
                 case "FILE_BYTES_RESPONSE":
                     log.info("FILE_BYTES_RESPONSE");
 
-                    byte[] encode_content = (byte[]) message.get("content");
-                    ByteBuffer decode_content = ByteBuffer.wrap(Base64.getDecoder().decode(encode_content));
+                    String encode_content = (String) message.get("content");
+                    ByteBuffer decode_content = ByteBuffer.wrap(Base64.getDecoder().decode(encode_content.getBytes()));
                     String file_bytes_pathName = message.get("pathName").toString();
                     Document file_bytes_fileDescriptor = (Document) message.get("fileDescriptor");
                     long file_bytes_startPosition =  (long) message.get("position");
@@ -321,7 +321,7 @@ public class PeerLogic extends Thread {
         Document file_bytes_fileDescriptor = (Document) requestBody.get("fileDescriptor");
         String file_bytes_md5 = (String) file_bytes_fileDescriptor.get("md5");
         String file_bytes_pathName = (String) file_bytes_fileDescriptor.get("pathName");
-        long file_bytes_startPosition =  (long) file_bytes_fileDescriptor.get("position");
+        long file_bytes_startPosition =  (long) requestBody.get("position");
         long file_bytes_fileSize = (long)file_bytes_fileDescriptor.get("fileSize");
 
         response.append("command", "FILE_BYTES_RESPONSE");
