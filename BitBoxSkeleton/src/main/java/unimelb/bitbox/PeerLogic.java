@@ -62,10 +62,7 @@ public class PeerLogic extends Thread {
         }
     }
 
-    // send handshake request if it is run as client
-    private void HandleHandShakeRequest(HostPort myPort, BufferedWriter out) {
-        sendInfo(constructHandShakeRequestJson(myPort), out);
-    }
+
 
 
 
@@ -181,7 +178,6 @@ public class PeerLogic extends Thread {
         }
     }
 
-    // invalid response
     private void constructInvalidProtocol(BufferedWriter out) {
         Document response = new Document();
         response.append("command", "INVALID_PROTOCOL");
@@ -189,7 +185,6 @@ public class PeerLogic extends Thread {
         sendInfo(response, out);
     }
 
-    // connection refuse response
     private void constructConnectionRefuse(BufferedWriter out) {
         Document response = new Document();
         response.append("command", "CONNECTION_REFUSED");
@@ -202,7 +197,6 @@ public class PeerLogic extends Thread {
         sendInfo(response, out);
     }
 
-    // connection success
     private void constructHandShakeResponse(BufferedWriter out) {
         Document response = new Document();
         response.append("command", "HANDSHAKE_RESPONSE");
@@ -212,7 +206,6 @@ public class PeerLogic extends Thread {
         sendInfo(response, out);
     }
 
-    // construct file descriptor
     private Document constructFileDescriptor(Document message) {
         return (Document) message.get("fileDescriptor");
     }
@@ -352,6 +345,10 @@ public class PeerLogic extends Thread {
         }
     }
 
+    // handle the handshake request
+    private void HandleHandShakeRequest(HostPort myPort, BufferedWriter out) {
+        sendInfo(constructHandShakeRequestJson(myPort), out);
+    }
 
     // handle the refuse situation
     private void handleHandShakeRefuse(Document message, BufferedWriter out) {
