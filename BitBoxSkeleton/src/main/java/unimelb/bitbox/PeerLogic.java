@@ -140,7 +140,7 @@ public class PeerLogic extends Thread {
                     Document file_bytes_fileDescriptor = (Document) message.get("fileDescriptor");
                     String file_bytes_pathName = message.get("pathName").toString();
                     long file_bytes_startPosition =  (long) message.get("position");
-                    long content_length =  (long) file_bytes_fileDescriptor.get("length");
+                    long content_length =  (long) message.get("length");
 
                     boolean flag_of_write = fileSystemManager.writeFile(file_bytes_pathName, decode_content, file_bytes_startPosition);
                     boolean flag_of_complete = fileSystemManager.checkWriteComplete(file_bytes_pathName);
@@ -211,24 +211,28 @@ public class PeerLogic extends Thread {
     // handle the hand shake response
     private void handleHandShakeResponse() {
         log.info("Handshake finished");
-//        Runnable runnable = ()-> {
-//            while(true) {
-//                syncIt();
-//                try {
-//                    Thread.sleep(syncInterval);
-//                }catch(InterruptedException e) {
-//                    e.printStackTrace();
-//                }
-//            }
-//        };
-//        Thread thread = new Thread(runnable);
-//        thread.start();
+        //syncIt();
+        Runnable runnable = ()-> {
+            while(true) {
+                syncIt();
+                try {
+                    Thread.sleep(syncInterval * 1000);
+                }catch(InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        };
+        Thread thread = new Thread(runnable);
+        thread.start();
     }
 
     // handle the hand shake request
     private void handleHandShakeRequest(Document message, BufferedWriter out) {
         try {
-            HostPort newOne = new HostPort((Document) message.get("hostPort"));
+            Document temp = (Document) message.get("hostPort");
+            String host = (String) temp.get("host");
+            int port = Integer.valueOf(temp.getString("port"));
+            HostPort newOne = new HostPort(host, port);
             if (peerList.contains(newOne)) {
                 return;
             } else if (peerList.size() >= maxConnection) {
@@ -236,18 +240,19 @@ public class PeerLogic extends Thread {
             } else {
                 constructHandShakeResponse(out);
                 peerList.add(newOne);
-//                Runnable runnable = ()-> {
-//                    while(true) {
-//                        syncIt();
-//                        try {
-//                            Thread.sleep(syncInterval);
-//                        }catch(InterruptedException e) {
-//                            e.printStackTrace();
-//                        }
-//                    }
-//                };
-//                Thread thread = new Thread(runnable);
-//                thread.start();
+                //syncIt();
+                Runnable runnable = ()-> {
+                    while(true) {
+                        syncIt();
+                        try {
+                            Thread.sleep(syncInterval * 1000);
+                        }catch(InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                };
+                Thread thread = new Thread(runnable);
+                thread.start();
             }
         } catch (Exception e) {
             constructInvalidProtocol(out);
@@ -264,6 +269,7 @@ public class PeerLogic extends Thread {
 
         response.append("command", "FILE_CREATE_RESPONSE");
         response.append("fileDescriptor", file_create_fileDescriptor);
+        response.append("pathName", file_pathName);
         response.append("pathName", file_pathName);
 
         boolean SF_flag = fileSystemManager.isSafePathName(file_pathName);
@@ -352,7 +358,7 @@ public class PeerLogic extends Thread {
         Document response = new Document();
         response.append("command", "FILE_DELETE_RESPONSE");
         response.append("fileDescriptor", constructFileDescriptor(message));
-        String pathName = message.getString("message");
+        String pathName = message.getString("pathName");
         Document descriptor = constructFileDescriptor(message);
         response.append("pathName", pathName);
         boolean flag = fileSystemManager.fileNameExists(pathName);
@@ -360,12 +366,14 @@ public class PeerLogic extends Thread {
             response.append("message", "path name does not exist");
             response.append("status", false);
             sendInfo(response, out);
+            return;
         }
         flag = fileSystemManager.isSafePathName(pathName);
         if (flag == false) {
             response.append("message", "unsafe path name given");
             response.append("status", false);
             sendInfo(response, out);
+            return;
         }
         flag = fileSystemManager.deleteFile(pathName, descriptor.getLong("lastModified"),
                 descriptor.getString("md5"));
@@ -483,6 +491,7 @@ public class PeerLogic extends Thread {
     // send the information
     private void sendInfo(Document info, BufferedWriter out) {
         try {
+            log.info(info.toJson());
             out.write(info.toJson());
             out.newLine();
             out.flush();
