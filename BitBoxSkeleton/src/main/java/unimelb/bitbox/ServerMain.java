@@ -25,34 +25,39 @@ public class ServerMain implements FileSystemObserver {
 
 	// By analyze the information of fileSystemEvent to construct and send the request
 	public void processFileSystemEvent(FileSystemEvent fileSystemEvent) {
-		switch (fileSystemEvent.event) {
-			case FILE_CREATE:
-				sendIt(constructCreateFileJson(fileSystemEvent));
-				log.info("FILE_CREATE message sent!");
-				break;
+		try {
+			switch (fileSystemEvent.event) {
+				case FILE_CREATE:
+					sendIt(constructCreateFileJson(fileSystemEvent));
+					log.info("FILE_CREATE message sent!");
+					break;
 
-			case FILE_DELETE:
-				sendIt(constructDeleteFileJson(fileSystemEvent));
-				log.info("FILE_DELETE message sent!");
-				break;
+				case FILE_DELETE:
+					sendIt(constructDeleteFileJson(fileSystemEvent));
+					log.info("FILE_DELETE message sent!");
+					break;
 
-			case FILE_MODIFY:
-				sendIt(constructModifyFileJson(fileSystemEvent));
-				log.info("FILE_MODIFY message sent!");
-				break;
+				case FILE_MODIFY:
+					sendIt(constructModifyFileJson(fileSystemEvent));
+					log.info("FILE_MODIFY message sent!");
+					break;
 
-			case DIRECTORY_CREATE:
-				sendIt(constructCreateDirectory(fileSystemEvent));
-				log.info("DIRECTORY_CREATE message sent!");
-				break;
+				case DIRECTORY_CREATE:
+					sendIt(constructCreateDirectory(fileSystemEvent));
+					log.info("DIRECTORY_CREATE message sent!");
+					break;
 
-			case DIRECTORY_DELETE:
-				sendIt(constructDeleteDirectory(fileSystemEvent));
-				log.info("DIRECTORY_DELETE message sent!");
-				break;
+				case DIRECTORY_DELETE:
+					sendIt(constructDeleteDirectory(fileSystemEvent));
+					log.info("DIRECTORY_DELETE message sent!");
+					break;
 
-			default:
-				log.warning("Wrong request");
+				default:
+					log.warning("Wrong request");
+			}
+		}
+		catch (Exception e){
+			e.printStackTrace();
 		}
 	}
 

@@ -62,106 +62,110 @@ public class PeerLogic extends Thread {
         }
     }
 
-    private void handleLogic(BufferedReader in, BufferedWriter out) throws IOException, NoSuchAlgorithmException{
+    private void handleLogic(BufferedReader in, BufferedWriter out) throws IOException, NoSuchAlgorithmException {
         String tempo;
-        while((tempo = in.readLine()) != null) {
+        while ((tempo = in.readLine()) != null) {
             Document message = Document.parse(tempo);
-            switch(message.getString("command")) {
-                case "INVALID_PROTOCOL":
-                    log.info("INVALID_PROTOCOL");
-                    log.info(message.getString("message"));
-                    // Nothing needs to handle
-                    socket.close();
-                    break;
+            try {
+                switch (message.getString("command")) {
+                    case "INVALID_PROTOCOL":
+                        log.info("INVALID_PROTOCOL");
+                        log.info(message.getString("message"));
+                        // Nothing needs to handle
+                        socket.close();
+                        break;
 
-                case "CONNECTION_REFUSED":
-                    log.info("CONNECTION_REFUSED");
-                    log.info(message.getString("message"));
-                    handleHandShakeRefuse(message, out);
-                    socket.close();
-                    break;
+                    case "CONNECTION_REFUSED":
+                        log.info("CONNECTION_REFUSED");
+                        log.info(message.getString("message"));
+                        handleHandShakeRefuse(message, out);
+                        socket.close();
+                        break;
 
-                case "HANDSHAKE_RESPONSE":
-                    log.info("HANDSHAKE_RESPONSE");
-                    log.info(message.getString("message"));
-                    handleHandShakeResponse();
-                    break;
+                    case "HANDSHAKE_RESPONSE":
+                        log.info("HANDSHAKE_RESPONSE");
+                        log.info(message.getString("message"));
+                        handleHandShakeResponse();
+                        break;
 
-                case "HANDSHAKE_REQUEST":
-                    log.info("HANDSHAKE_REQUEST");
-                    log.info(message.getString("message"));
-                    handleHandShakeRequest(message, out);
-                    break;
+                    case "HANDSHAKE_REQUEST":
+                        log.info("HANDSHAKE_REQUEST");
+                        log.info(message.getString("message"));
+                        handleHandShakeRequest(message, out);
+                        break;
 
-                case "FILE_CREATE_REQUEST":
-                    log.info("FILE_CREATE_REQUEST");
-                    log.info(message.getString("message"));
-                    handleFileCreateRequest(message, out);
-                    break;
+                    case "FILE_CREATE_REQUEST":
+                        log.info("FILE_CREATE_REQUEST");
+                        log.info(message.getString("message"));
+                        handleFileCreateRequest(message, out);
+                        break;
 
-                case "FILE_CREATE_RESPONSE":
-                    log.info("FILE_CREATE_RESPONSE");
-                    log.info(message.getString("message"));
-                    break;
+                    case "FILE_CREATE_RESPONSE":
+                        log.info("FILE_CREATE_RESPONSE");
+                        log.info(message.getString("message"));
+                        break;
 
-                case "FILE_BYTES_REQUEST":
-                    log.info("FILE_BYTES_REQUEST");
-                    log.info(message.toJson());
-                    handleFileBytesRequest(message, out);
-                    break;
+                    case "FILE_BYTES_REQUEST":
+                        log.info("FILE_BYTES_REQUEST");
+                        log.info(message.toJson());
+                        handleFileBytesRequest(message, out);
+                        break;
 
-                case "FILE_BYTES_RESPONSE":
-                    log.info("FILE_BYTES_RESPONSE");
-                    log.info(message.toJson());
-                    handleFileBytesResponse(message, out);
-                    break;
+                    case "FILE_BYTES_RESPONSE":
+                        log.info("FILE_BYTES_RESPONSE");
+                        log.info(message.toJson());
+                        handleFileBytesResponse(message, out);
+                        break;
 
-                case "FILE_DELETE_REQUEST":
-                    log.info("FILE_DELETE_REQUEST");
-                    log.info(message.toJson());
-                    handleFileDeleteRequest(message, out);
-                    break;
+                    case "FILE_DELETE_REQUEST":
+                        log.info("FILE_DELETE_REQUEST");
+                        log.info(message.toJson());
+                        handleFileDeleteRequest(message, out);
+                        break;
 
-                case "FILE_DELETE_RESPONSE":
-                    log.info("FILE_DELETE_RESPONSE");
-                    log.info(message.toJson());
-                    // Nothing needs to handle
-                    break;
+                    case "FILE_DELETE_RESPONSE":
+                        log.info("FILE_DELETE_RESPONSE");
+                        log.info(message.toJson());
+                        // Nothing needs to handle
+                        break;
 
-                case "FILE_MODIFY_REQUEST":
-                    log.info("FILE_MODIFY_REQUEST");
-                    log.info(message.toJson());
-                    handleFileModifyRequest(message, out);
-                    break;
+                    case "FILE_MODIFY_REQUEST":
+                        log.info("FILE_MODIFY_REQUEST");
+                        log.info(message.toJson());
+                        handleFileModifyRequest(message, out);
+                        break;
 
-                case "FILE_MODIFY_RESPONSE":
-                    log.info("FILE_MODIFY_RESPONSE");
-                    log.info(message.toJson());
-                    // Nothing needs to handle
-                    break;
+                    case "FILE_MODIFY_RESPONSE":
+                        log.info("FILE_MODIFY_RESPONSE");
+                        log.info(message.toJson());
+                        // Nothing needs to handle
+                        break;
 
-                case "DIRECTORY_CREATE_REQUEST":
-                    log.info("handle request");
-                    log.info(message.toJson());
-                    handleDirectoryCreateRequest(message, out);
-                    break;
+                    case "DIRECTORY_CREATE_REQUEST":
+                        log.info("handle request");
+                        log.info(message.toJson());
+                        handleDirectoryCreateRequest(message, out);
+                        break;
 
-                case "DIRECTORY_CREATE_RESPONSE":
-                    log.info("DIRECTORY_CREATE_RESPONSE");
-                    log.info(message.toJson());
-                    break;
+                    case "DIRECTORY_CREATE_RESPONSE":
+                        log.info("DIRECTORY_CREATE_RESPONSE");
+                        log.info(message.toJson());
+                        break;
 
-                case "DIRECTORY_DELETE_REQUEST":
-                    log.info("DIRECTORY_DELETE_REQUEST");
-                    log.info(message.toJson());
-                    handleDirectoryDeleteRequest(message, out);
-                    break;
+                    case "DIRECTORY_DELETE_REQUEST":
+                        log.info("DIRECTORY_DELETE_REQUEST");
+                        log.info(message.toJson());
+                        handleDirectoryDeleteRequest(message, out);
+                        break;
 
-                case "DIRECTORY_DELETE_RESPONSE":
-                    log.info("DIRECTORY_DELETE_RESPONSE");
-                    log.info(message.toJson());
-                    log.info(message.getString("message"));
-                    break;
+                    case "DIRECTORY_DELETE_RESPONSE":
+                        log.info("DIRECTORY_DELETE_RESPONSE");
+                        log.info(message.toJson());
+                        log.info(message.getString("message"));
+                        break;
+                }
+            }catch (Exception e){
+                e.printStackTrace();
             }
         }
     }
@@ -226,9 +230,6 @@ public class PeerLogic extends Thread {
         response.append("pathName", file_pathName);
 
         boolean SF_flag = fileSystemManager.isSafePathName(file_pathName);
-        // Todo: Add filenameExists
-//        boolean FN_flag = fileSystemManager.fileNameExists(file_pathName);
-//        boolean FC_flag = fileSystemManager.fileNameExists(file_pathName, file_md5);
 
         if (SF_flag){
             boolean File_modify_loder_flag = fileSystemManager.modifyFileLoader(file_pathName, file_md5, file_create_lastModified);
@@ -264,11 +265,10 @@ public class PeerLogic extends Thread {
         response.append("pathName", file_pathName);
 
         boolean SF_flag = fileSystemManager.isSafePathName(file_pathName);
-        // Todo: Add filenameExists
-//        boolean FN_flag = fileSystemManager.fileNameExists(file_pathName);
+        boolean FN_flag = fileSystemManager.fileNameExists(file_pathName);
 //        boolean FC_flag = fileSystemManager.fileNameExists(file_pathName, file_md5);
 
-        if (SF_flag){
+        if (SF_flag && !FN_flag){
             boolean File_create_loder_flag = fileSystemManager.createFileLoader(file_pathName, file_md5, file_create_fileSize, file_create_lastModified);
 
             if (File_create_loder_flag){
