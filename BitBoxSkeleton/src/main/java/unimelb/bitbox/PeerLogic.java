@@ -16,34 +16,31 @@ import java.util.logging.Logger;
 public class PeerLogic extends Thread {
     private Socket socket;
     private HostPort myPort;
-    private HostPort otherPort;
     private boolean isFirst;
+    private int maxConnection;
+    private ServerMain serverMain;
+    private ArrayList<HostPort> peerList;
+    private FileSystemManager fileSystemManager;
     private HashMap<Socket, BufferedWriter> socketWriter;
     private HashMap<Socket, BufferedReader> socketReader;
-    private FileSystemManager fileSystemManager;
-    private ServerMain serverMain;
     private static Logger log = Logger.getLogger(ServerMain.class.getName());
-    private ArrayList<HostPort> peerList;
-    private int maxConnection;
     private static int blockSize = Integer.valueOf(Configuration.getConfigurationValue("blockSize"));
     private static int syncInterval = Integer.valueOf(Configuration.getConfigurationValue("syncInterval"));
 
-    public PeerLogic(Socket socket, HostPort myPort,
-                     HashMap<Socket, BufferedWriter> socketWriter,
-                     HashMap<Socket, BufferedReader> socketReader,
-                     FileSystemManager fileSystemManager, ServerMain serverMain,
-                     boolean isFirst, ArrayList<HostPort> peerList, int maxConnection) {
+    PeerLogic(Socket socket, HostPort myPort,
+              HashMap<Socket, BufferedWriter> socketWriter,
+              HashMap<Socket, BufferedReader> socketReader,
+              FileSystemManager fileSystemManager, ServerMain serverMain,
+              boolean isFirst, ArrayList<HostPort> peerList, int maxConnection) {
         this.socket = socket;
         this.myPort = myPort;
+        this.isFirst = isFirst;
+        this.peerList = peerList;
+        this.serverMain = serverMain;
         this.socketWriter = socketWriter;
         this.socketReader = socketReader;
-        this.fileSystemManager = fileSystemManager;
-        this.serverMain = serverMain;
-        this.isFirst = isFirst;
-        this.serverMain = serverMain;
-        this.fileSystemManager = fileSystemManager;
-        this.peerList = peerList;
         this.maxConnection = maxConnection;
+        this.fileSystemManager = fileSystemManager;
     }
 
     public void run() {
@@ -53,7 +50,7 @@ public class PeerLogic extends Thread {
             BufferedWriter out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
             socketWriter.put(socket, out);
             if (isFirst) {
-                sendHandShakeRequest(myPort, out);
+                HandleHandShakeRequest(myPort, out);
             }
             try {
                 handleLogic(in, out);
@@ -66,19 +63,11 @@ public class PeerLogic extends Thread {
     }
 
     // send handshake request if it is run as client
-    private void sendHandShakeRequest(HostPort myPort, BufferedWriter out) {
+    private void HandleHandShakeRequest(HostPort myPort, BufferedWriter out) {
         sendInfo(constructHandShakeRequestJson(myPort), out);
     }
 
-    private Document constructHandShakeRequestJson(HostPort myPort) {
-        Document request = new Document();
-        request.append("command", "HANDSHAKE_REQUEST");
-        Document hostPort = new Document();
-        hostPort.append("host", myPort.host);
-        hostPort.append("port", myPort.port);
-        request.append("hostPort", hostPort);
-        return request;
-    }
+
 
     private void handleLogic(BufferedReader in, BufferedWriter out) throws IOException, NoSuchAlgorithmException{
         String tempo;
@@ -125,50 +114,37 @@ public class PeerLogic extends Thread {
                 case "FILE_BYTES_REQUEST":
                     log.info("FILE_BYTES_REQUEST");
                     log.info(message.toJson());
-                    sendInfo(constructFileByteResponse(message), out);
+                    handleFileBytesRequest(message, out);
                     break;
 
                 case "FILE_BYTES_RESPONSE":
                     log.info("FILE_BYTES_RESPONSE");
-
-                    String encode_content = (String) message.get("content");
-                    ByteBuffer decode_content = ByteBuffer.wrap(Base64.getDecoder().decode(encode_content.getBytes()));
-                    Document file_bytes_fileDescriptor = (Document) message.get("fileDescriptor");
-                    String file_bytes_pathName = message.get("pathName").toString();
-                    long file_bytes_startPosition =  (long) message.get("position");
-                    long content_length =  (long) message.get("length");
-
-                    boolean flag_of_write = fileSystemManager.writeFile(file_bytes_pathName, decode_content, file_bytes_startPosition);
-                    boolean flag_of_complete = fileSystemManager.checkWriteComplete(file_bytes_pathName);
-
-                    if (!flag_of_complete) {
-                        sendInfo(constructFileByteRequest(message, file_bytes_startPosition + content_length, blockSize), out);
-                    }
+                    log.info(message.toJson());
+                    handleFileBytesResponse(message, out);
                     break;
 
                 case "FILE_DELETE_REQUEST":
-                    log.info("handle request");
+                    log.info("FILE_DELETE_REQUEST");
                     log.info(message.toJson());
                     handleFileDeleteRequest(message, out);
                     break;
 
                 case "FILE_DELETE_RESPONSE":
-                    log.info(message.getString("message"));
+                    log.info("FILE_DELETE_RESPONSE");
+                    log.info(message.toJson());
+                    // Nothing needs to handle
                     break;
 
                 case "FILE_MODIFY_REQUEST":
-                    Document FILE_MODIFY_RESPONSE = constructFileModifyResponse(message);
-                    sendInfo(FILE_MODIFY_RESPONSE, out);
-
-                    if((boolean)FILE_MODIFY_RESPONSE.get("status")){
-                        Document FIRST_FILE_BYTE_RESPONSE = constructFileByteRequest(message, 0, blockSize);
-                        sendInfo(FIRST_FILE_BYTE_RESPONSE, out);
-                    }
+                    log.info("FILE_MODIFY_REQUEST");
+                    log.info(message.toJson());
+                    handleFileModifyRequest(message, out);
                     break;
 
                 case "FILE_MODIFY_RESPONSE":
-                    log.info("FILE_CREATE_RESPONSE");
-                    log.info(message.getString("message"));
+                    log.info("FILE_MODIFY_RESPONSE");
+                    log.info(message.toJson());
+                    // Nothing needs to handle
                     break;
 
                 case "DIRECTORY_CREATE_REQUEST":
@@ -178,16 +154,19 @@ public class PeerLogic extends Thread {
                     break;
 
                 case "DIRECTORY_CREATE_RESPONSE":
-                    log.info(message.getString("message"));
+                    log.info("DIRECTORY_CREATE_RESPONSE");
+                    log.info(message.toJson());
                     break;
 
                 case "DIRECTORY_DELETE_REQUEST":
-                    log.info("handle request");
+                    log.info("DIRECTORY_DELETE_REQUEST");
                     log.info(message.toJson());
                     handleDirectoryDeleteRequest(message, out);
                     break;
 
                 case "DIRECTORY_DELETE_RESPONSE":
+                    log.info("DIRECTORY_DELETE_RESPONSE");
+                    log.info(message.toJson());
                     log.info(message.getString("message"));
                     break;
             }
@@ -202,75 +181,51 @@ public class PeerLogic extends Thread {
         }
     }
 
-    // handle the refuse situation
-    private void handleHandShakeRefuse(Document message, BufferedWriter out) {
-        log.info("Connection refused, trying to connect backup peer!");
-        ArrayList<Document> peerList = (ArrayList<Document>) message.get("peers");
-        for (Document peer: peerList) {
-            sendHandShakeRequest(new HostPort(peer), out);
-        }
+    // invalid response
+    private void constructInvalidProtocol(BufferedWriter out) {
+        Document response = new Document();
+        response.append("command", "INVALID_PROTOCOL");
+        response.append("message", "message must contain a command field as string");
+        sendInfo(response, out);
     }
 
-    // handle the hand shake response
-    private void handleHandShakeResponse() {
-        log.info("Handshake finished");
-//        Runnable runnable = ()-> {
-//            while(true) {
-//                syncIt();
-//                try {
-//                    Thread.sleep(syncInterval);
-//                }catch(InterruptedException e) {
-//                    e.printStackTrace();
-//                }
-//            }
-//        };
-//        Thread thread = new Thread(runnable);
-//        thread.start();
+    // connection refuse response
+    private void constructConnectionRefuse(BufferedWriter out) {
+        Document response = new Document();
+        response.append("command", "CONNECTION_REFUSED");
+        response.append("message", "connection limit reached");
+        ArrayList<Document> peers = new ArrayList<>();
+        for (HostPort peer: peerList) {
+            peers.add(peer.toDoc());
+        }
+        response.append("peers", peers);
+        sendInfo(response, out);
     }
 
-    private void handleFileCreateRequest(Document message, BufferedWriter out) throws IOException, NoSuchAlgorithmException {
-        Document FILE_CREATE_RESPONSE = constructFileCreateResponse(message);
-        sendInfo(FILE_CREATE_RESPONSE, out);
-
-        if((boolean)FILE_CREATE_RESPONSE.get("status")){
-            boolean flag_of_shortcut = fileSystemManager.checkShortcut((String)FILE_CREATE_RESPONSE.get("pathname"));
-            if (flag_of_shortcut){
-                log.info("File copied from local");
-            }
-            else{
-                Document FIRST_FILE_BYTE_RESPONSE = constructFileByteRequest(message, 0, blockSize);
-                sendInfo(FIRST_FILE_BYTE_RESPONSE, out);
-            }
-        }
+    // connection success
+    private void constructHandShakeResponse(BufferedWriter out) {
+        Document response = new Document();
+        response.append("command", "HANDSHAKE_RESPONSE");
+        Document hostPort = new Document();
+        hostPort.append("host", myPort.toDoc());
+        response.append("hostPort", hostPort);
+        sendInfo(response, out);
     }
 
-    // handle the hand shake request
-    private void handleHandShakeRequest(Document message, BufferedWriter out) {
-        try {
-            HostPort newOne = new HostPort((Document) message.get("hostPort"));
-            if (peerList.contains(newOne)) {
-                return;
-            } else if (peerList.size() >= maxConnection) {
-                constructConnectionRefuse(out);
-            } else {
-                constructHandShakeResponse(out);
-                peerList.add(newOne);
-//                Runnable runnable = ()-> {
-//                    while(true) {
-//                        syncIt();
-//                        try {
-//                            Thread.sleep(syncInterval);
-//                        }catch(InterruptedException e) {
-//                            e.printStackTrace();
-//                        }
-//                    }
-//                };
-//                Thread thread = new Thread(runnable);
-//                thread.start();
-            }
-        } catch (Exception e) {
-            constructInvalidProtocol(out);
-        }
+    // construct file descriptor
+    private Document constructFileDescriptor(Document message) {
+        Document fileDescriptor = (Document) message.get("fileDescriptor");
+        return fileDescriptor;
+    }
+
+    private Document constructHandShakeRequestJson(HostPort myPort) {
+        Document request = new Document();
+        request.append("command", "HANDSHAKE_REQUEST");
+        Document hostPort = new Document();
+        hostPort.append("host", myPort.host);
+        hostPort.append("port", myPort.port);
+        request.append("hostPort", hostPort);
+        return request;
     }
 
     private Document constructFileModifyResponse(Document message) throws IOException, NoSuchAlgorithmException {
@@ -399,6 +354,16 @@ public class PeerLogic extends Thread {
         }
     }
 
+
+    // handle the refuse situation
+    private void handleHandShakeRefuse(Document message, BufferedWriter out) {
+        log.info("Connection refused, trying to connect backup peer!");
+        ArrayList<Document> peerList = (ArrayList<Document>) message.get("peers");
+        for (Document peer: peerList) {
+            HandleHandShakeRequest(new HostPort(peer), out);
+        }
+    }
+
     // handle the file delete request
     private void handleFileDeleteRequest(Document message, BufferedWriter out) {
         Document response = new Document();
@@ -432,6 +397,7 @@ public class PeerLogic extends Thread {
         }
     }
 
+    // handel Directory Create request
     private void handleDirectoryCreateRequest(Document message,BufferedWriter out) {
         Document response = new Document();
         response.append("command", "DIRECTORY_CREATE_RESPONSE");
@@ -495,41 +461,100 @@ public class PeerLogic extends Thread {
         }
     }
 
-    // invalid response
-    private void constructInvalidProtocol(BufferedWriter out) {
-        Document response = new Document();
-        response.append("command", "INVALID_PROTOCOL");
-        response.append("message", "message must contain a command field as string");
-        sendInfo(response, out);
+    // handle file bytes response
+    private void handleFileBytesRequest(Document message, BufferedWriter out) throws IOException, NoSuchAlgorithmException {
+        sendInfo(constructFileByteResponse(message), out);
     }
 
-    // connection refuse response
-    private void constructConnectionRefuse(BufferedWriter out) {
-        Document response = new Document();
-        response.append("command", "CONNECTION_REFUSED");
-        response.append("message", "connection limit reached");
-        ArrayList<Document> peers = new ArrayList<>();
-        for (HostPort peer: peerList) {
-            peers.add(peer.toDoc());
+    // handle file bytes response
+    private void handleFileBytesResponse(Document message, BufferedWriter out) throws IOException, NoSuchAlgorithmException {
+        String encode_content = (String) message.get("content");
+        ByteBuffer decode_content = ByteBuffer.wrap(Base64.getDecoder().decode(encode_content.getBytes()));
+        Document file_bytes_fileDescriptor = (Document) message.get("fileDescriptor");
+        String file_bytes_pathName = message.get("pathName").toString();
+        long file_bytes_startPosition =  (long) message.get("position");
+        long content_length =  (long) message.get("length");
+
+        boolean flag_of_write = fileSystemManager.writeFile(file_bytes_pathName, decode_content, file_bytes_startPosition);
+        boolean flag_of_complete = fileSystemManager.checkWriteComplete(file_bytes_pathName);
+
+        if (!flag_of_complete) {
+            sendInfo(constructFileByteRequest(message, file_bytes_startPosition + content_length, blockSize), out);
         }
-        response.append("peers", peers);
-        sendInfo(response, out);
     }
 
-    // connection success
-    private void constructHandShakeResponse(BufferedWriter out) {
-        Document response = new Document();
-        response.append("command", "HANDSHAKE_RESPONSE");
-        Document hostPort = new Document();
-        hostPort.append("host", myPort.toDoc());
-        response.append("hostPort", hostPort);
-        sendInfo(response, out);
+    // handle file bytes response
+    private void handleFileModifyRequest(Document message, BufferedWriter out) throws IOException, NoSuchAlgorithmException {
+        Document FILE_MODIFY_RESPONSE = constructFileModifyResponse(message);
+        sendInfo(FILE_MODIFY_RESPONSE, out);
+
+        if((boolean)FILE_MODIFY_RESPONSE.get("status")){
+            Document FIRST_FILE_BYTE_RESPONSE = constructFileByteRequest(message, 0, blockSize);
+            sendInfo(FIRST_FILE_BYTE_RESPONSE, out);
+        }
     }
 
-    // construct file descriptor
-    private Document constructFileDescriptor(Document message) {
-        Document fileDescriptor = (Document) message.get("fileDescriptor");
-        return fileDescriptor;
+    // handle the hand shake response
+    private void handleHandShakeResponse() {
+        log.info("Handshake finished");
+        Runnable runnable = ()-> {
+            while(true) {
+                syncIt();
+                try {
+                    Thread.sleep(syncInterval*1000);
+                }catch(InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        };
+        Thread thread = new Thread(runnable);
+        thread.start();
+    }
+
+    // handle file Create request
+    private void handleFileCreateRequest(Document message, BufferedWriter out) throws IOException, NoSuchAlgorithmException {
+        Document FILE_CREATE_RESPONSE = constructFileCreateResponse(message);
+        sendInfo(FILE_CREATE_RESPONSE, out);
+
+        if((boolean)FILE_CREATE_RESPONSE.get("status")){
+            boolean flag_of_shortcut = fileSystemManager.checkShortcut((String)FILE_CREATE_RESPONSE.get("pathname"));
+            if (flag_of_shortcut){
+                log.info("File copied from local");
+            }
+            else{
+                Document FIRST_FILE_BYTE_RESPONSE = constructFileByteRequest(message, 0, blockSize);
+                sendInfo(FIRST_FILE_BYTE_RESPONSE, out);
+            }
+        }
+    }
+
+    // handle the hand shake request
+    private void handleHandShakeRequest(Document message, BufferedWriter out) {
+        try {
+            HostPort newOne = new HostPort((Document) message.get("hostPort"));
+            if (peerList.contains(newOne)) {
+                return;
+            } else if (peerList.size() >= maxConnection) {
+                constructConnectionRefuse(out);
+            } else {
+                constructHandShakeResponse(out);
+                peerList.add(newOne);
+                Runnable runnable = ()-> {
+                    while(true) {
+                        syncIt();
+                        try {
+                            Thread.sleep(syncInterval*1000);
+                        }catch(InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                };
+                Thread thread = new Thread(runnable);
+                thread.start();
+            }
+        } catch (Exception e) {
+            constructInvalidProtocol(out);
+        }
     }
 
     // send the information
