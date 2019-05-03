@@ -392,7 +392,7 @@ public class PeerLogic extends Thread {
         Document response = new Document();
         response.append("command", "FILE_DELETE_RESPONSE");
         response.append("fileDescriptor", constructFileDescriptor(message));
-        String pathName = message.getString("message");
+        String pathName = message.getString("pathName");
         Document descriptor = constructFileDescriptor(message);
         response.append("pathName", pathName);
         boolean flag = fileSystemManager.fileNameExists(pathName);
