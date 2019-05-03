@@ -123,6 +123,7 @@ public class PeerLogic extends Thread {
                     break;
 
                 case "FILE_CREATE_RESPONSE":
+                    log.info("FILE_CREATE_RESPONSE");
                     log.info(message.getString("message"));
                     break;
 
@@ -140,7 +141,7 @@ public class PeerLogic extends Thread {
                     Document file_bytes_fileDescriptor = (Document) message.get("fileDescriptor");
                     String file_bytes_pathName = message.get("pathName").toString();
                     long file_bytes_startPosition =  (long) message.get("position");
-                    long content_length =  (long) file_bytes_fileDescriptor.get("length");
+                    long content_length =  (long) message.get("length");
 
                     boolean flag_of_write = fileSystemManager.writeFile(file_bytes_pathName, decode_content, file_bytes_startPosition);
                     boolean flag_of_complete = fileSystemManager.checkWriteComplete(file_bytes_pathName);
@@ -161,10 +162,17 @@ public class PeerLogic extends Thread {
                     break;
 
                 case "FILE_MODIFY_REQUEST":
+                    Document FILE_MODIFY_RESPONSE = constructFileModifyResponse(message);
+                    sendInfo(FILE_MODIFY_RESPONSE, out);
+
+                    if((boolean)FILE_MODIFY_RESPONSE.get("status")){
+                        Document FIRST_FILE_BYTE_RESPONSE = constructFileByteRequest(message, 0, blockSize);
+                        sendInfo(FIRST_FILE_BYTE_RESPONSE, out);
+                    }
                     break;
 
                 case "FILE_MODIFY_RESPONSE":
-                    //不确定
+                    log.info("FILE_CREATE_RESPONSE");
                     log.info(message.getString("message"));
                     break;
 
@@ -251,6 +259,51 @@ public class PeerLogic extends Thread {
             }
         } catch (Exception e) {
             constructInvalidProtocol(out);
+        }
+    }
+
+    private Document constructFileModifyResponse(Document message) throws IOException, NoSuchAlgorithmException {
+        Document response = new Document();
+        String file_pathName = (String) message.get("pathName");
+        Document file_create_fileDescriptor = constructFileDescriptor(message);
+        String file_md5 = (String) file_create_fileDescriptor.get("md5");
+        long file_create_fileSize = (long) file_create_fileDescriptor.get("fileSize");
+        long file_create_lastModified = (long) file_create_fileDescriptor.get("lastModified");
+
+        response.append("command", "FILE_MODIFY_RESPONSE");
+        response.append("fileDescriptor", file_create_fileDescriptor);
+        response.append("pathName", file_pathName);
+
+        boolean SF_flag = fileSystemManager.isSafePathName(file_pathName);
+        boolean FN_flag = fileSystemManager.fileNameExists(file_pathName);
+        boolean FC_flag = fileSystemManager.fileNameExists(file_pathName, file_md5);
+
+        if (SF_flag){
+            boolean File_create_loder_flag = false;
+            boolean File_modify_loder_flag = false;
+
+            if (!FN_flag){
+                File_create_loder_flag = fileSystemManager.createFileLoader(file_pathName, file_md5, file_create_fileSize, file_create_lastModified);
+            }
+            else if (!FC_flag){
+                File_modify_loder_flag = fileSystemManager.modifyFileLoader(file_pathName, file_md5, file_create_lastModified);
+            }
+
+            if (File_create_loder_flag | File_modify_loder_flag){
+                response.append("status", true);
+                response.append("message", "File create loader ready!");
+                return response;
+            }
+            else{
+                response.append("status", false);
+                response.append("message", "File loader cannot create!");
+                return response;
+            }
+        }
+        else{
+            response.append("status", false);
+            response.append("message", "Unsafe path given!");
+            return response;
         }
     }
 
