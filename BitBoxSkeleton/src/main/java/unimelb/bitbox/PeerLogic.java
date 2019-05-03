@@ -1,6 +1,5 @@
 package unimelb.bitbox;
 
-import org.json.simple.JSONObject;
 import unimelb.bitbox.util.Document;
 import unimelb.bitbox.util.FileSystemManager;
 import unimelb.bitbox.util.HostPort;
@@ -136,13 +135,14 @@ public class PeerLogic extends Thread {
                 case "FILE_BYTES_RESPONSE":
                     log.info("FILE_BYTES_RESPONSE");
 
-                    ByteBuffer bb = (ByteBuffer) message.get("content");
+                    byte[] encode_content = (byte[]) message.get("content");
+                    ByteBuffer decode_content = ByteBuffer.wrap(Base64.getDecoder().decode(encode_content));
                     String file_bytes_pathName = message.get("pathName").toString();
                     Document file_bytes_fileDescriptor = (Document) message.get("fileDescriptor");
-                    long file_bytes_startPosition =  (long) file_bytes_fileDescriptor.get("position");
+                    long file_bytes_startPosition =  (long) message.get("position");
                     long content_length =  (long) file_bytes_fileDescriptor.get("length");
 
-                    boolean flag_of_write = fileSystemManager.writeFile(file_bytes_pathName, bb, file_bytes_startPosition);
+                    boolean flag_of_write = fileSystemManager.writeFile(file_bytes_pathName, decode_content, file_bytes_startPosition);
                     boolean flag_of_complete = fileSystemManager.checkWriteComplete(file_bytes_pathName);
 
                     if (!flag_of_complete) {
