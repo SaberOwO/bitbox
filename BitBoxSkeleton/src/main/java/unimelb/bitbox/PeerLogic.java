@@ -86,106 +86,82 @@ public class PeerLogic extends Thread {
             Document message = Document.parse(tempo);
             switch(message.getString("command")) {
                 case "INVALID_PROTOCOL":
-                    log.info(message.getString("message"));
-                    // 不确定
+                    log.info("INVALID_PROTOCOL");
                     socket.close();
                     break;
 
                 case "CONNECTION_REFUSED":
+                    log.info("CONNECTION_REFUSED");
                     handleHandShakeRefuse(message, out);
-                    // 不确定
                     socket.close();
                     break;
 
                 case "HANDSHAKE_RESPONSE":
+                    log.info("HANDSHAKE_RESPONSE");
                     handleHandShakeResponse();
                     break;
 
                 case "HANDSHAKE_REQUEST":
-                    log.info(message.toJson());
+                    log.info("HANDSHAKE_REQUEST");
                     handleHandShakeRequest(message, out);
                     break;
 
                 case "FILE_CREATE_REQUEST":
-                    Document FILE_CREATE_RESPONSE = constructFileCreateResponse(message);
-                    sendInfo(FILE_CREATE_RESPONSE, out);
-
-                    if((boolean)FILE_CREATE_RESPONSE.get("status")){
-                        boolean flag_of_shortcut = fileSystemManager.checkShortcut((String)FILE_CREATE_RESPONSE.get("pathname"));
-                        if (flag_of_shortcut){
-                            log.info("File copied from local");
-                        }
-                        else{
-                            Document FIRST_FILE_BYTE_RESPONSE = constructFileByteRequest(message, 0, blockSize);
-                            sendInfo(FIRST_FILE_BYTE_RESPONSE, out);
-                        }
-                    }
+                    log.info("FILE_CREATE_REQUEST");
+                    handleFileCreateRequest(message, out);
                     break;
 
                 case "FILE_CREATE_RESPONSE":
-                    log.info(message.getString("message"));
+                    log.info("FILE_CREATE_RESPONSE");
+                    // Nothing needs to handle.
                     break;
 
                 case "FILE_BYTES_REQUEST":
                     log.info("FILE_BYTES_REQUEST");
-                    log.info(message.toJson());
-                    sendInfo(constructFileByteResponse(message), out);
+                    handleFileBytesRequest(message, out);
                     break;
 
                 case "FILE_BYTES_RESPONSE":
                     log.info("FILE_BYTES_RESPONSE");
-
-                    String encode_content = (String) message.get("content");
-                    ByteBuffer decode_content = ByteBuffer.wrap(Base64.getDecoder().decode(encode_content.getBytes()));
-                    Document file_bytes_fileDescriptor = (Document) message.get("fileDescriptor");
-                    String file_bytes_pathName = message.get("pathName").toString();
-                    long file_bytes_startPosition =  (long) message.get("position");
-                    long content_length =  (long) message.get("length");
-
-                    boolean flag_of_write = fileSystemManager.writeFile(file_bytes_pathName, decode_content, file_bytes_startPosition);
-                    boolean flag_of_complete = fileSystemManager.checkWriteComplete(file_bytes_pathName);
-
-                    if (!flag_of_complete) {
-                        sendInfo(constructFileByteRequest(message, file_bytes_startPosition + content_length, blockSize), out);
-                    }
+                    handleFileBytesResponse(message, out);
                     break;
 
                 case "FILE_DELETE_REQUEST":
-                    log.info("handle request");
-                    log.info(message.toJson());
+                    log.info("FILE_DELETE_REQUEST");
                     handleFileDeleteRequest(message, out);
                     break;
 
                 case "FILE_DELETE_RESPONSE":
-                    log.info(message.getString("message"));
+                    log.info("FILE_DELETE_RESPONSE");
+                    // Nothing needs to handle.
                     break;
 
                 case "FILE_MODIFY_REQUEST":
+                    log.info("FILE_MODIFY_REQUEST");
                     break;
 
                 case "FILE_MODIFY_RESPONSE":
-                    //不确定
-                    log.info(message.getString("message"));
+                    log.info("FILE_MODIFY_RESPONSE");
                     break;
 
                 case "DIRECTORY_CREATE_REQUEST":
                     log.info("handle request");
-                    log.info(message.toJson());
                     handleDirectoryCreateRequest(message, out);
                     break;
 
                 case "DIRECTORY_CREATE_RESPONSE":
-                    log.info(message.getString("message"));
+                    log.info("DIRECTORY_CREATE_RESPONSE");
+                    // Nothing needs to handle.
                     break;
 
                 case "DIRECTORY_DELETE_REQUEST":
                     log.info("handle request");
-                    log.info(message.toJson());
                     handleDirectoryDeleteRequest(message, out);
                     break;
 
                 case "DIRECTORY_DELETE_RESPONSE":
-                    log.info(message.getString("message"));
+                    log.info("DIRECTORY_DELETE_RESPONSE");
+                    // Nothing needs to handle.
                     break;
             }
         }
@@ -208,6 +184,44 @@ public class PeerLogic extends Thread {
         }
     }
 
+    // handle file bytes request
+    private void handleFileBytesRequest(Document message, BufferedWriter out) throws IOException, NoSuchAlgorithmException {
+        sendInfo(constructFileByteResponse(message), out);
+    }
+
+    // handle file bytes response
+    private void handleFileBytesResponse(Document message, BufferedWriter out) throws IOException, NoSuchAlgorithmException {
+        String encode_content = (String) message.get("content");
+        ByteBuffer decode_content = ByteBuffer.wrap(Base64.getDecoder().decode(encode_content.getBytes()));
+        // Document file_bytes_fileDescriptor = (Document) message.get("fileDescriptor");
+        String file_bytes_pathName = message.get("pathName").toString();
+        long file_bytes_startPosition =  (long) message.get("position");
+        long content_length =  (long) message.get("length");
+
+        boolean flag_of_write = fileSystemManager.writeFile(file_bytes_pathName, decode_content, file_bytes_startPosition);
+        boolean flag_of_complete = fileSystemManager.checkWriteComplete(file_bytes_pathName);
+
+        if (!flag_of_complete) {
+            sendInfo(constructFileByteRequest(message, file_bytes_startPosition + content_length, blockSize), out);
+        }
+    }
+
+    private void handleFileCreateRequest(Document message, BufferedWriter out) throws IOException, NoSuchAlgorithmException {
+        Document FILE_CREATE_RESPONSE = constructFileCreateResponse(message);
+        sendInfo(FILE_CREATE_RESPONSE, out);
+
+        if((boolean)FILE_CREATE_RESPONSE.get("status")){
+            boolean flag_of_shortcut = fileSystemManager.checkShortcut((String)FILE_CREATE_RESPONSE.get("pathname"));
+            if (flag_of_shortcut){
+                log.info("File copied from local");
+            }
+            else{
+                Document FIRST_FILE_BYTE_RESPONSE = constructFileByteRequest(message, 0, blockSize);
+                sendInfo(FIRST_FILE_BYTE_RESPONSE, out);
+            }
+        }
+    }
+
     // handle the hand shake response
     private void handleHandShakeResponse() {
         log.info("Handshake finished");
@@ -217,7 +231,7 @@ public class PeerLogic extends Thread {
                 syncIt();
                 try {
                     Thread.sleep(syncInterval * 1000);
-                }catch(InterruptedException e) {
+                } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
             }
