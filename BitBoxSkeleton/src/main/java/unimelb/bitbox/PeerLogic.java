@@ -86,82 +86,106 @@ public class PeerLogic extends Thread {
             Document message = Document.parse(tempo);
             switch(message.getString("command")) {
                 case "INVALID_PROTOCOL":
-                    log.info("INVALID_PROTOCOL");
+                    log.info(message.getString("message"));
+                    // 不确定
                     socket.close();
                     break;
 
                 case "CONNECTION_REFUSED":
-                    log.info("CONNECTION_REFUSED");
                     handleHandShakeRefuse(message, out);
+                    // 不确定
                     socket.close();
                     break;
 
                 case "HANDSHAKE_RESPONSE":
-                    log.info("HANDSHAKE_RESPONSE");
                     handleHandShakeResponse();
                     break;
 
                 case "HANDSHAKE_REQUEST":
-                    log.info("HANDSHAKE_REQUEST");
+                    log.info(message.toJson());
                     handleHandShakeRequest(message, out);
                     break;
 
                 case "FILE_CREATE_REQUEST":
-                    log.info("FILE_CREATE_REQUEST");
-                    handleFileCreateRequest(message, out);
+                    Document FILE_CREATE_RESPONSE = constructFileCreateResponse(message);
+                    sendInfo(FILE_CREATE_RESPONSE, out);
+
+                    if((boolean)FILE_CREATE_RESPONSE.get("status")){
+                        boolean flag_of_shortcut = fileSystemManager.checkShortcut((String)FILE_CREATE_RESPONSE.get("pathname"));
+                        if (flag_of_shortcut){
+                            log.info("File copied from local");
+                        }
+                        else{
+                            Document FIRST_FILE_BYTE_RESPONSE = constructFileByteRequest(message, 0, blockSize);
+                            sendInfo(FIRST_FILE_BYTE_RESPONSE, out);
+                        }
+                    }
                     break;
 
                 case "FILE_CREATE_RESPONSE":
-                    log.info("FILE_CREATE_RESPONSE");
-                    // Nothing needs to handle.
+                    log.info(message.getString("message"));
                     break;
 
                 case "FILE_BYTES_REQUEST":
                     log.info("FILE_BYTES_REQUEST");
-                    handleFileBytesRequest(message, out);
+                    log.info(message.toJson());
+                    sendInfo(constructFileByteResponse(message), out);
                     break;
 
                 case "FILE_BYTES_RESPONSE":
                     log.info("FILE_BYTES_RESPONSE");
-                    handleFileBytesResponse(message, out);
+
+                    String encode_content = (String) message.get("content");
+                    ByteBuffer decode_content = ByteBuffer.wrap(Base64.getDecoder().decode(encode_content.getBytes()));
+                    Document file_bytes_fileDescriptor = (Document) message.get("fileDescriptor");
+                    String file_bytes_pathName = message.get("pathName").toString();
+                    long file_bytes_startPosition =  (long) message.get("position");
+                    long content_length =  (long) file_bytes_fileDescriptor.get("length");
+
+                    boolean flag_of_write = fileSystemManager.writeFile(file_bytes_pathName, decode_content, file_bytes_startPosition);
+                    boolean flag_of_complete = fileSystemManager.checkWriteComplete(file_bytes_pathName);
+
+                    if (!flag_of_complete) {
+                        sendInfo(constructFileByteRequest(message, file_bytes_startPosition + content_length, blockSize), out);
+                    }
                     break;
 
                 case "FILE_DELETE_REQUEST":
-                    log.info("FILE_DELETE_REQUEST");
+                    log.info("handle request");
+                    log.info(message.toJson());
                     handleFileDeleteRequest(message, out);
                     break;
 
                 case "FILE_DELETE_RESPONSE":
-                    log.info("FILE_DELETE_RESPONSE");
-                    // Nothing needs to handle.
+                    log.info(message.getString("message"));
                     break;
 
                 case "FILE_MODIFY_REQUEST":
-                    log.info("FILE_MODIFY_REQUEST");
                     break;
 
                 case "FILE_MODIFY_RESPONSE":
-                    log.info("FILE_MODIFY_RESPONSE");
+                    //不确定
+                    log.info(message.getString("message"));
                     break;
 
                 case "DIRECTORY_CREATE_REQUEST":
                     log.info("handle request");
+                    log.info(message.toJson());
                     handleDirectoryCreateRequest(message, out);
                     break;
 
                 case "DIRECTORY_CREATE_RESPONSE":
-                    log.info("DIRECTORY_CREATE_RESPONSE");
-                    // Nothing needs to handle.
+                    log.info(message.getString("message"));
                     break;
 
                 case "DIRECTORY_DELETE_REQUEST":
                     log.info("handle request");
+                    log.info(message.toJson());
                     handleDirectoryDeleteRequest(message, out);
                     break;
 
                 case "DIRECTORY_DELETE_RESPONSE":
-                    log.info("DIRECTORY_DELETE_RESPONSE");
-                    // Nothing needs to handle.
+                    log.info(message.getString("message"));
                     break;
             }
         }
@@ -184,69 +208,27 @@ public class PeerLogic extends Thread {
         }
     }
 
-    // handle file bytes request
-    private void handleFileBytesRequest(Document message, BufferedWriter out) throws IOException, NoSuchAlgorithmException {
-        sendInfo(constructFileByteResponse(message), out);
-    }
-
-    // handle file bytes response
-    private void handleFileBytesResponse(Document message, BufferedWriter out) throws IOException, NoSuchAlgorithmException {
-        String encode_content = (String) message.get("content");
-        ByteBuffer decode_content = ByteBuffer.wrap(Base64.getDecoder().decode(encode_content.getBytes()));
-        // Document file_bytes_fileDescriptor = (Document) message.get("fileDescriptor");
-        String file_bytes_pathName = message.get("pathName").toString();
-        long file_bytes_startPosition =  (long) message.get("position");
-        long content_length =  (long) message.get("length");
-
-        boolean flag_of_write = fileSystemManager.writeFile(file_bytes_pathName, decode_content, file_bytes_startPosition);
-        boolean flag_of_complete = fileSystemManager.checkWriteComplete(file_bytes_pathName);
-
-        if (!flag_of_complete) {
-            sendInfo(constructFileByteRequest(message, file_bytes_startPosition + content_length, blockSize), out);
-        }
-    }
-
-    private void handleFileCreateRequest(Document message, BufferedWriter out) throws IOException, NoSuchAlgorithmException {
-        Document FILE_CREATE_RESPONSE = constructFileCreateResponse(message);
-        sendInfo(FILE_CREATE_RESPONSE, out);
-
-        if((boolean)FILE_CREATE_RESPONSE.get("status")){
-            boolean flag_of_shortcut = fileSystemManager.checkShortcut((String)FILE_CREATE_RESPONSE.get("pathname"));
-            if (flag_of_shortcut){
-                log.info("File copied from local");
-            }
-            else{
-                Document FIRST_FILE_BYTE_RESPONSE = constructFileByteRequest(message, 0, blockSize);
-                sendInfo(FIRST_FILE_BYTE_RESPONSE, out);
-            }
-        }
-    }
-
     // handle the hand shake response
     private void handleHandShakeResponse() {
         log.info("Handshake finished");
-        //syncIt();
-        Runnable runnable = ()-> {
-            while(true) {
-                syncIt();
-                try {
-                    Thread.sleep(syncInterval * 1000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-        };
-        Thread thread = new Thread(runnable);
-        thread.start();
+//        Runnable runnable = ()-> {
+//            while(true) {
+//                syncIt();
+//                try {
+//                    Thread.sleep(syncInterval);
+//                }catch(InterruptedException e) {
+//                    e.printStackTrace();
+//                }
+//            }
+//        };
+//        Thread thread = new Thread(runnable);
+//        thread.start();
     }
 
     // handle the hand shake request
     private void handleHandShakeRequest(Document message, BufferedWriter out) {
         try {
-            Document temp = (Document) message.get("hostPort");
-            String host = (String) temp.get("host");
-            int port = Integer.valueOf(temp.getString("port"));
-            HostPort newOne = new HostPort(host, port);
+            HostPort newOne = new HostPort((Document) message.get("hostPort"));
             if (peerList.contains(newOne)) {
                 return;
             } else if (peerList.size() >= maxConnection) {
@@ -254,19 +236,18 @@ public class PeerLogic extends Thread {
             } else {
                 constructHandShakeResponse(out);
                 peerList.add(newOne);
-                //syncIt();
-                Runnable runnable = ()-> {
-                    while(true) {
-                        syncIt();
-                        try {
-                            Thread.sleep(syncInterval * 1000);
-                        }catch(InterruptedException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                };
-                Thread thread = new Thread(runnable);
-                thread.start();
+//                Runnable runnable = ()-> {
+//                    while(true) {
+//                        syncIt();
+//                        try {
+//                            Thread.sleep(syncInterval);
+//                        }catch(InterruptedException e) {
+//                            e.printStackTrace();
+//                        }
+//                    }
+//                };
+//                Thread thread = new Thread(runnable);
+//                thread.start();
             }
         } catch (Exception e) {
             constructInvalidProtocol(out);
@@ -283,7 +264,6 @@ public class PeerLogic extends Thread {
 
         response.append("command", "FILE_CREATE_RESPONSE");
         response.append("fileDescriptor", file_create_fileDescriptor);
-        response.append("pathName", file_pathName);
         response.append("pathName", file_pathName);
 
         boolean SF_flag = fileSystemManager.isSafePathName(file_pathName);
@@ -372,7 +352,7 @@ public class PeerLogic extends Thread {
         Document response = new Document();
         response.append("command", "FILE_DELETE_RESPONSE");
         response.append("fileDescriptor", constructFileDescriptor(message));
-        String pathName = message.getString("pathName");
+        String pathName = message.getString("message");
         Document descriptor = constructFileDescriptor(message);
         response.append("pathName", pathName);
         boolean flag = fileSystemManager.fileNameExists(pathName);
@@ -380,14 +360,12 @@ public class PeerLogic extends Thread {
             response.append("message", "path name does not exist");
             response.append("status", false);
             sendInfo(response, out);
-            return;
         }
         flag = fileSystemManager.isSafePathName(pathName);
         if (flag == false) {
             response.append("message", "unsafe path name given");
             response.append("status", false);
             sendInfo(response, out);
-            return;
         }
         flag = fileSystemManager.deleteFile(pathName, descriptor.getLong("lastModified"),
                 descriptor.getString("md5"));
@@ -505,7 +483,6 @@ public class PeerLogic extends Thread {
     // send the information
     private void sendInfo(Document info, BufferedWriter out) {
         try {
-            log.info(info.toJson());
             out.write(info.toJson());
             out.newLine();
             out.flush();
