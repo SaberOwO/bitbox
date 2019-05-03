@@ -45,9 +45,9 @@ public class PeerLogic extends Thread {
 
     public void run() {
         try {
-            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream(), "utf-8"));
             socketReader.put(socket, in);
-            BufferedWriter out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+            BufferedWriter out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "utf-8"));
             socketWriter.put(socket, out);
             if (isFirst) {
                 HandleHandShakeRequest(myPort, out);
