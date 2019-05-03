@@ -30,27 +30,26 @@ public class Peer
     	System.setProperty("java.util.logging.SimpleFormatter.format",
                 "[%1$tc] %2$s %4$s: %5$s%n");
         log.info("BitBox Peer starting...");
-        ServerMain sm = new ServerMain(socketWriter);
+        ServerMain serverMain = new ServerMain(socketWriter);
 
         String[] peersInfo = Configuration.getConfigurationValue("peers").split(",");
 
-        // make sure that i can handle 20 more request at same time
-        ExecutorService tpool = Executors.newFixedThreadPool(maxConnection + peersInfo.length + 20);
+        ExecutorService tpool = Executors.newFixedThreadPool(maxConnection * 3);
 
 
         if (Configuration.getConfigurationValue("peers").equals("")) {
             log.info("First Peer In The CLUSTER");
-            runServer(tpool, sm);
+            runServer(tpool, serverMain);
         } else {
             boolean flag = false;
             for (String peerInfo: peersInfo) {
                 HostPort hostPort = new HostPort(peerInfo);
-                runClient(hostPort, tpool, sm);
+                runClient(hostPort, tpool, serverMain);
                 flag = true;
             }
             if (flag == false) {
                 log.info("First Peer In The CLUSTER");
-                runServer(tpool, sm);
+                runServer(tpool, serverMain);
             }
         }
     }

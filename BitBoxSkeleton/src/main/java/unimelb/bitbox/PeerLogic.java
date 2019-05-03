@@ -63,45 +63,45 @@ public class PeerLogic extends Thread {
     }
 
     private void handleLogic(BufferedReader in, BufferedWriter out) throws IOException, NoSuchAlgorithmException{
-        String tempo;
-        while((tempo = in.readLine()) != null) {
-            Document message = Document.parse(tempo);
+        String originalMessage;
+        while((originalMessage = in.readLine()) != null) {
+            Document message = Document.parse(originalMessage);
             switch(message.getString("command")) {
                 case "INVALID_PROTOCOL":
                     log.info("INVALID_PROTOCOL");
-                    log.info(message.getString("message"));
+                    log.info(message.toJson());
                     // Nothing needs to handle
                     socket.close();
                     break;
 
                 case "CONNECTION_REFUSED":
                     log.info("CONNECTION_REFUSED");
-                    log.info(message.getString("message"));
+                    log.info(message.toJson());
                     handleHandShakeRefuse(message, out);
                     socket.close();
                     break;
 
                 case "HANDSHAKE_RESPONSE":
                     log.info("HANDSHAKE_RESPONSE");
-                    log.info(message.getString("message"));
+                    log.info(message.toJson());
                     handleHandShakeResponse();
                     break;
 
                 case "HANDSHAKE_REQUEST":
                     log.info("HANDSHAKE_REQUEST");
-                    log.info(message.getString("message"));
+                    log.info(message.toJson());
                     handleHandShakeRequest(message, out);
                     break;
 
                 case "FILE_CREATE_REQUEST":
                     log.info("FILE_CREATE_REQUEST");
-                    log.info(message.getString("message"));
+                    log.info(message.toJson());
                     handleFileCreateRequest(message, out);
                     break;
 
                 case "FILE_CREATE_RESPONSE":
                     log.info("FILE_CREATE_RESPONSE");
-                    log.info(message.getString("message"));
+                    log.info(message.toJson());
                     break;
 
                 case "FILE_BYTES_REQUEST":
