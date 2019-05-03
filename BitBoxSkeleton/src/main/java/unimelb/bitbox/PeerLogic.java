@@ -214,8 +214,7 @@ public class PeerLogic extends Thread {
 
     // construct file descriptor
     private Document constructFileDescriptor(Document message) {
-        Document fileDescriptor = (Document) message.get("fileDescriptor");
-        return fileDescriptor;
+        return (Document) message.get("fileDescriptor");
     }
 
     private Document constructHandShakeRequestJson(HostPort myPort) {
@@ -233,7 +232,6 @@ public class PeerLogic extends Thread {
         String file_pathName = (String) message.get("pathName");
         Document file_create_fileDescriptor = constructFileDescriptor(message);
         String file_md5 = (String) file_create_fileDescriptor.get("md5");
-        long file_create_fileSize = (long) file_create_fileDescriptor.get("fileSize");
         long file_create_lastModified = (long) file_create_fileDescriptor.get("lastModified");
 
         response.append("command", "FILE_MODIFY_RESPONSE");
@@ -241,8 +239,8 @@ public class PeerLogic extends Thread {
         response.append("pathName", file_pathName);
 
         boolean SF_flag = fileSystemManager.isSafePathName(file_pathName);
-        boolean FN_flag = fileSystemManager.fileNameExists(file_pathName);
-        boolean FC_flag = fileSystemManager.fileNameExists(file_pathName, file_md5);
+//        boolean FN_flag = fileSystemManager.fileNameExists(file_pathName);
+//        boolean FC_flag = fileSystemManager.fileNameExists(file_pathName, file_md5);
 
         if (SF_flag){
             boolean File_create_loder_flag = false;
@@ -497,18 +495,7 @@ public class PeerLogic extends Thread {
     // handle the hand shake response
     private void handleHandShakeResponse() {
         log.info("Handshake finished");
-        Runnable runnable = ()-> {
-            while(true) {
-                syncIt();
-                try {
-                    Thread.sleep(syncInterval*1000);
-                }catch(InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-        };
-        Thread thread = new Thread(runnable);
-        thread.start();
+        syncTimer();
     }
 
     // handle file Create request
@@ -539,18 +526,7 @@ public class PeerLogic extends Thread {
             } else {
                 constructHandShakeResponse(out);
                 peerList.add(newOne);
-                Runnable runnable = ()-> {
-                    while(true) {
-                        syncIt();
-                        try {
-                            Thread.sleep(syncInterval*1000);
-                        }catch(InterruptedException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                };
-                Thread thread = new Thread(runnable);
-                thread.start();
+                syncTimer();
             }
         } catch (Exception e) {
             constructInvalidProtocol(out);
@@ -566,6 +542,22 @@ public class PeerLogic extends Thread {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    // Sync timer
+    private void syncTimer() {
+        Runnable runnable = ()-> {
+            while(true) {
+                syncIt();
+                try {
+                    Thread.sleep(syncInterval*1000);
+                }catch(InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        };
+        Thread thread = new Thread(runnable);
+        thread.start();
     }
 
 }
