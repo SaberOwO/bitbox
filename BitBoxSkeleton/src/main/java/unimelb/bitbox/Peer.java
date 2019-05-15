@@ -44,10 +44,15 @@ public class Peer
             boolean flag = false;
             for (String peerInfo: peersInfo) {
                 HostPort hostPort = new HostPort(peerInfo);
-                runClient(hostPort, tpool, serverMain);
-                flag = true;
+                try{
+                    runClient(hostPort, tpool, serverMain);
+                    flag = true;
+                }catch (IOException e){
+                    log.info("HostPort invalid!");
+                }
+
             }
-            if (flag == false) {
+            if (!flag) {
                 log.info("First Peer In The CLUSTER");
                 runServer(tpool, serverMain);
             }
