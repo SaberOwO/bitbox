@@ -36,15 +36,14 @@ public class Peer {
                 "[%1$tc] %2$s %4$s: %5$s%n");
         log.info("BitBox Peer starting...");
 
-        if(mode.equals("tcp")) {
-            ServerMain serverMain = new ServerMain(socketWriter);
-        }
 
         String[] peersInfo = Configuration.getConfigurationValue("peers").split(",");
 
         ExecutorService tpool = Executors.newFixedThreadPool(maxConnection * 3);
 
-        if (Configuration.getConfigurationValue("mode").equals("tcp")) {
+        if (mode.equals("tcp")) {
+            ServerMain serverMain = new ServerMain(socketWriter);
+
             if (Configuration.getConfigurationValue("peers").equals("")) {
                 log.info("First Peer In The CLUSTER");
                 runServer(tpool, serverMain);
