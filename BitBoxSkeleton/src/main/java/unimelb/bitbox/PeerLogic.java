@@ -418,7 +418,7 @@ public class PeerLogic extends Thread {
         if (flag == false) {
             response.append("message", "unsafe pathname given");
             response.append("status", false);
-            sendInfo(response, out);
+            sendInfo (response, out);
             return ;
         }
         flag = fileSystemManager.makeDirectory(pathName);

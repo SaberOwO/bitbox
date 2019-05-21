@@ -1,7 +1,6 @@
 package unimelb.bitbox;
 
 
-import jdk.internal.org.objectweb.asm.Handle;
 import unimelb.bitbox.util.Configuration;
 import unimelb.bitbox.util.Document;
 import unimelb.bitbox.util.FileSystemManager;
@@ -25,30 +24,15 @@ public class PeerUDPLogic extends Thread {
     private ArrayList<HostPort> peerList;
     private int maxConnection;
     private HostPort hostPort;
-    private boolean isServer;
     private LinkedList<Document> messageList;
     private static String localIp = Configuration.getConfigurationValue("advertisedName");
     private static int localPort = Integer.valueOf(Configuration.getConfigurationValue("port"));
     private static int syncInterval = Integer.valueOf(Configuration.getConfigurationValue("syncInterval"));
 
 
-    public PeerUDPLogic(DatagramSocket datagramSocket,DatagramPacket datagramPacket,FileSystemManager fileSystemManager,
-                        ServerMain serverMain, boolean isFirst, ArrayList<HostPort> peerList,
-                        int maxConnection,HostPort hostPort,boolean isServer) {
-        this.datagramSocket = datagramSocket;
-        this.fileSystemManager = fileSystemManager;
-        this.datagramPacket = datagramPacket;
-        this.serverMain = serverMain;
-        this.isFirst = isFirst;
-        this.peerList = peerList;
-        this.maxConnection = maxConnection;
-        this.hostPort = hostPort;
-        this.isServer = isServer;
-    }
-
     public PeerUDPLogic(DatagramSocket datagramSocket,FileSystemManager fileSystemManager,
                         ServerMain serverMain, boolean isFirst, ArrayList<HostPort> peerList,
-                        int maxConnection,HostPort hostPort,boolean isServer) {
+                        int maxConnection,HostPort hostPort) {
         this.datagramSocket = datagramSocket;
         this.fileSystemManager = fileSystemManager;
         this.serverMain = serverMain;
@@ -56,7 +40,6 @@ public class PeerUDPLogic extends Thread {
         this.peerList = peerList;
         this.maxConnection = maxConnection;
         this.hostPort = hostPort;
-        this.isServer = isServer;
     }
 
 
@@ -83,19 +66,20 @@ public class PeerUDPLogic extends Thread {
     private void handleLogic(DatagramSocket datagramSocket,DatagramPacket receivedPacket){
         log.info("handshake info:"+new String(receivedPacket.getData()));
         try {
-        String receivedData = new String(receivedPacket.getData(),"UTF-8");
+        String receivedData = new String(receivedPacket.getData(),0,
+                receivedPacket.getLength(),"UTF-8");
         log.info("receivedData"+receivedData);
+            Document message1 = Document.parse("");
         Document message = Document.parse(receivedData);
         log.info(message.toJson());
         switch(message.getString("command")){
-            //Todo
             case "INVALID_PROTOCOL":
                 log.info("INVALID_PROTOCOL");
                 log.info(message.toJson());
                 datagramSocket.close();
                 break;
+
             case "CONNECTION_REFUSED":
-                //Todo
                 log.info("CONNECTION_REFUSED");
                 log.info(message.toJson());
                 handleHandShakeRefuse(datagramSocket,message);
@@ -112,6 +96,17 @@ public class PeerUDPLogic extends Thread {
                 log.info("HANDSHAKE_RESPONSE");
                 log.info(message.toJson());
                 handleHandShakeResponse(message);
+                break;
+
+            case"DIRECTORY_CREATE_REQUEST":
+                log.info("DIRECTORY_CREATE_REQUEST");
+                log.info(message.toJson());
+                handleDirectoryCreateRequest(datagramSocket,message,receivedPacket);
+                break;
+
+            case"DIRECTORY_CREATE_RESPONSE":
+                log.info("DIRECTORY_CREATE_RESPONSE");
+                log.info(message.toJson());
                 break;
         }
         } catch (UnsupportedEncodingException e) {
@@ -210,6 +205,36 @@ public class PeerUDPLogic extends Thread {
         sendResponse(datagramSocket,response,remoteHostPort);
     }
 
+    public void handleDirectoryCreateRequest(DatagramSocket datagramSocket,Document message,DatagramPacket receivedPacket){
+        Document response = new Document();
+        response.append("command", "DIRECTORY_CREATE_RESPONSE");
+        String pathName = message.getString("pathName");
+        response.append("pathName", pathName);
+        boolean flag = fileSystemManager.dirNameExists(pathName);
+        if (flag == true) {
+            response.append("message", "pathname already exists");
+            response.append("status", false);
+            sendInfo(datagramSocket,receivedPacket,response);
+            return ;
+        }
+        flag = fileSystemManager.isSafePathName(pathName);
+        if (flag == false) {
+            response.append("message", "unsafe pathname given");
+            response.append("status", false);
+            sendInfo(datagramSocket,receivedPacket,response);
+            return ;
+        }
+        flag = fileSystemManager.makeDirectory(pathName);
+        if(flag == false) {
+            response.append("message", "there was a problem creating the directory");
+            response.append("status",false);
+            sendInfo(datagramSocket,receivedPacket,response);
+        }else{
+            response.append("message","directory created");
+            response.append("status",true);
+            sendInfo(datagramSocket,receivedPacket,response);
+        }
+    }
 
 
     private void syncTimer() {
@@ -235,7 +260,7 @@ public class PeerUDPLogic extends Thread {
         }
     }
 
-    //send response info
+    //send response of file or document request
    private void sendInfo(DatagramSocket datagramSocket,DatagramPacket datagramPacket,Document info){
        byte[] message = new byte[8192];
        try {
@@ -251,6 +276,7 @@ public class PeerUDPLogic extends Thread {
        }
    }
 
+   //handshake related response
    private void sendResponse(DatagramSocket datagramSocket,Document response,HostPort remoteHostPort){
        byte[] message = new byte[8192];
        try {

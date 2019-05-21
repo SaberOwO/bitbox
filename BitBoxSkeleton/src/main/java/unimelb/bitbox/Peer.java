@@ -100,13 +100,13 @@ public class Peer
 
 	    DatagramSocket datagramSocket = new DatagramSocket();
 	    tpool.execute(new PeerUDPLogic(datagramSocket,serverMain.fileSystemManager,
-                serverMain, true,peerList,maxConnection,hostPort,false));
+                serverMain, true,peerList,maxConnection,hostPort));
     }
 
     private static void runUDPServer(ExecutorService tpool,ServerMain serverMain) throws IOException{
 	    DatagramSocket datagramSocket = new DatagramSocket(localPort);
 	    log.info("Listening at "+localPort);
             tpool.execute(new PeerUDPLogic(datagramSocket,serverMain.fileSystemManager,
-                    serverMain, false,peerList,maxConnection, new HostPort(localIp, localPort),true));
+                    serverMain, false,peerList,maxConnection, new HostPort(localIp, localPort)));
     }
 }
