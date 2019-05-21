@@ -74,7 +74,7 @@ public class ServerMain implements FileSystemObserver {
         try {
             switch (fileSystemEvent.event) {
                 case FILE_CREATE:
-                    if (mode == "tcp") {
+                    if (mode.equals("tcp")) {
                         sendIt(constructCreateFileJson(fileSystemEvent));
                         log.info("FILE_CREATE message sent!");
                     } else {
@@ -84,7 +84,7 @@ public class ServerMain implements FileSystemObserver {
                     break;
 
                 case FILE_DELETE:
-                    if (mode == "tcp") {
+                    if (mode.equals("tcp")) {
                         sendIt(constructDeleteFileJson(fileSystemEvent));
                         log.info("FILE_DELETE message sent!");
                     } else {
@@ -93,7 +93,7 @@ public class ServerMain implements FileSystemObserver {
                     }
                     break;
                 case FILE_MODIFY:
-                    if (mode == "tcp") {
+                    if (mode.equals("tcp")) {
                         sendIt(constructModifyFileJson(fileSystemEvent));
                         log.info("FILE_MODIFY message sent!");
                     } else {
@@ -102,7 +102,7 @@ public class ServerMain implements FileSystemObserver {
                     }
                     break;
                 case DIRECTORY_CREATE:
-                    if (mode == "tcp") {
+                    if (mode.equals("tcp")) {
                         sendIt(constructCreateDirectory(fileSystemEvent));
                         log.info("DIRECTORY_CREATE message sent!");
                     } else {
@@ -111,7 +111,7 @@ public class ServerMain implements FileSystemObserver {
                     }
                     break;
                 case DIRECTORY_DELETE:
-                    if (mode == "tcp") {
+                    if (mode.equals("tcp")) {
                         sendIt(constructDeleteDirectory(fileSystemEvent));
                         log.info("DIRECTORY_DELETE message sent!");
                     } else {

@@ -26,6 +26,7 @@ public class Peer {
     private static String localIp = Configuration.getConfigurationValue("advertisedName");
     private static int localPort = Integer.valueOf(Configuration.getConfigurationValue("port"));
     private static int maxConnection = Integer.valueOf(Configuration.getConfigurationValue("maximumIncommingConnections"));
+    private static String mode = Configuration.getConfigurationValue("mode");
     private static ArrayList<HostPort> peerList = new ArrayList<>();
     private static HashMap<Socket, BufferedWriter> socketWriter = new HashMap<>();
     private static HashMap<Socket, BufferedReader> socketReader = new HashMap<>();
@@ -35,7 +36,9 @@ public class Peer {
                 "[%1$tc] %2$s %4$s: %5$s%n");
         log.info("BitBox Peer starting...");
 
-        ServerMain serverMain = new ServerMain(socketWriter);
+        if(mode.equals("tcp")) {
+            ServerMain serverMain = new ServerMain(socketWriter);
+        }
 
         String[] peersInfo = Configuration.getConfigurationValue("peers").split(",");
 
