@@ -64,19 +64,16 @@ public class PeerUDPLogic extends Thread {
         if (isFirst){
             sendHandShakeRequest(datagramSocket,hostPort);
         }
-        if(isServer) {
-            handleLogic(datagramSocket, datagramPacket);
-        }else{
-            while (true) {
-                byte[] data = new byte[8192];
-                DatagramPacket receivedPacket = new DatagramPacket(data,data.length);
-                try {
-                    datagramSocket.receive(receivedPacket);
-                    handleLogic(datagramSocket,receivedPacket);
-                 //   syncTimer();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+
+        while (true) {
+            byte[] data = new byte[8192];
+            DatagramPacket receivedPacket = new DatagramPacket(data,data.length);
+            try {
+                datagramSocket.receive(receivedPacket);
+                handleLogic(datagramSocket,receivedPacket);
+             //   syncTimer();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }
 
@@ -234,7 +231,7 @@ public class PeerUDPLogic extends Thread {
     private void syncIt() {
         ArrayList<FileSystemManager.FileSystemEvent> eventList = fileSystemManager.generateSyncEvents();
         for (FileSystemManager.FileSystemEvent event: eventList) {
-            serverMain.processFileSystemEvent(event);
+            serverMain.processFileSystemEvent(event,peerList,datagramSocket);
         }
     }
 

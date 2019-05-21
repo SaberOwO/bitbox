@@ -106,12 +106,7 @@ public class Peer
     private static void runUDPServer(ExecutorService tpool,ServerMain serverMain) throws IOException{
 	    DatagramSocket datagramSocket = new DatagramSocket(localPort);
 	    log.info("Listening at "+localPort);
-	    while (true){
-	        byte[] data =new byte[8192];
-            DatagramPacket datagramPacket = new DatagramPacket(data,data.length);
-	        datagramSocket.receive(datagramPacket);
-            tpool.execute(new PeerUDPLogic(datagramSocket,datagramPacket,serverMain.fileSystemManager,
+            tpool.execute(new PeerUDPLogic(datagramSocket,serverMain.fileSystemManager,
                     serverMain, false,peerList,maxConnection, new HostPort(localIp, localPort),true));
-        }
     }
 }

@@ -2,14 +2,14 @@ package unimelb.bitbox;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.net.Socket;
+import java.io.UnsupportedEncodingException;
+import java.net.*;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.logging.Logger;
-import unimelb.bitbox.util.Configuration;
-import unimelb.bitbox.util.Document;
-import unimelb.bitbox.util.FileSystemManager;
-import unimelb.bitbox.util.FileSystemObserver;
+
+import unimelb.bitbox.util.*;
 import unimelb.bitbox.util.FileSystemManager.FileSystemEvent;
 
 public class ServerMain implements FileSystemObserver {
@@ -17,6 +17,8 @@ public class ServerMain implements FileSystemObserver {
 	protected FileSystemManager fileSystemManager;
 	private HashMap<Socket, BufferedWriter> socketWriter;
 	private static String mode = Configuration.getConfigurationValue("mode");
+
+
 	public ServerMain(HashMap<Socket, BufferedWriter> socketWriter) throws NumberFormatException, IOException,
 			NoSuchAlgorithmException {
 		fileSystemManager=new FileSystemManager(Configuration.getConfigurationValue("path"),this);
@@ -26,41 +28,64 @@ public class ServerMain implements FileSystemObserver {
 		fileSystemManager=new FileSystemManager(Configuration.getConfigurationValue("path"),this);
 	}
 
+	public void processFileSystemEvent(FileSystemEvent fileSystemEvent,ArrayList<HostPort> peerList,
+									   DatagramSocket datagramSocket){
+		try {
+			switch (fileSystemEvent.event) {
+				case FILE_CREATE:
+					sendUDP(constructCreateFileJson(fileSystemEvent),peerList,datagramSocket);
+					log.info("FILE_CREATE message sent!");
+					break;
+
+				case FILE_DELETE:
+					sendUDP(constructDeleteFileJson(fileSystemEvent),peerList,datagramSocket);
+					log.info("FILE_DELETE message sent!");
+					break;
+				case FILE_MODIFY:
+					sendUDP(constructModifyFileJson(fileSystemEvent),peerList,datagramSocket);
+					log.info("FILE_MODIFY message sent!");
+					break;
+				case DIRECTORY_CREATE:
+					sendUDP(constructCreateDirectory(fileSystemEvent),peerList,datagramSocket);
+					log.info("DIRECTORY_CREATE message sent!");
+					break;
+				case DIRECTORY_DELETE:
+					sendUDP(constructDeleteDirectory(fileSystemEvent),peerList,datagramSocket);
+					log.info("DIRECTORY_DELETE message sent!");
+					break;
+				default:
+					log.warning("Wrong request");
+			}
+		}
+		catch (Exception e){
+			e.printStackTrace();
+		}
+	}
 	// By analyze the information of fileSystemEvent to construct and send the request
 	public void processFileSystemEvent(FileSystemEvent fileSystemEvent) {
 		try {
 			switch (fileSystemEvent.event) {
 				case FILE_CREATE:
-					if (mode.equals("tcp")) {
 						sendIt(constructCreateFileJson(fileSystemEvent));
 						log.info("FILE_CREATE message sent!");
-					}
 					break;
 
 				case FILE_DELETE:
-					if (mode.equals("tcp")) {
 						sendIt(constructDeleteFileJson(fileSystemEvent));
 						log.info("FILE_DELETE message sent!");
 						break;
-					}
 				case FILE_MODIFY:
-					if(mode.equals("tcp")) {
 						sendIt(constructModifyFileJson(fileSystemEvent));
 						log.info("FILE_MODIFY message sent!");
 						break;
-					}
 				case DIRECTORY_CREATE:
-					if(mode.equals("tcp")) {
 						sendIt(constructCreateDirectory(fileSystemEvent));
 						log.info("DIRECTORY_CREATE message sent!");
 						break;
-					}
 				case DIRECTORY_DELETE:
-					if(mode.equals("tcp")) {
 						sendIt(constructDeleteDirectory(fileSystemEvent));
 						log.info("DIRECTORY_DELETE message sent!");
 						break;
-					}
 				default:
 					log.warning("Wrong request");
 			}
@@ -138,4 +163,51 @@ public class ServerMain implements FileSystemObserver {
 		return fileDescriptor;
 	}
 
+	public void sendUDP(String message,ArrayList<HostPort> peerList,DatagramSocket datagramSocket){
+		for(HostPort peer:peerList){
+				byte[] sendMessage = new byte[8192];
+				try {
+					sendMessage = message.getBytes("UTF-8");
+				} catch (UnsupportedEncodingException e) {
+					log.info("message is not in UTF8");
+				}
+				try {
+					InetAddress remoteHost = InetAddress.getByName(peer.host);
+					log.info("handshake send to"+remoteHost.toString()+":"+peer.port);
+					DatagramPacket datagramPacket = new DatagramPacket(sendMessage,sendMessage.length,remoteHost,peer.port);
+					DatagramPacket receivePacket = new DatagramPacket(new byte[8192],8192);
+					boolean receivedResponse = false;
+					int tryTimes = 0;
+					while (!receivedResponse&&tryTimes<3) {
+						try {
+							datagramSocket.send(datagramPacket);
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
+						try {
+							tryTimes += 1;
+							datagramSocket.setSoTimeout(9000);
+							datagramSocket.receive(receivePacket);
+							if (receivePacket.getAddress().equals(remoteHost)) {
+								receivedResponse = true;
+								log.info("the message has been received");
+							}
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
+					}
+					if(receivedResponse==false) {
+						try {
+							datagramSocket.setSoTimeout(0);
+						} catch (SocketException e) {
+							e.printStackTrace();
+						}
+					}
+				} catch (UnknownHostException e) {
+					e.printStackTrace();
+				}
+
+			}
+
+	}
 }
