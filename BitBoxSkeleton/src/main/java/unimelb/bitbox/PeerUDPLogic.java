@@ -72,38 +72,38 @@ public class PeerUDPLogic extends Thread {
 
         switch(message.getString("command")){
             case "INVALID_PROTOCOL":
-                log.info("INVALID_PROTOCOL");
+                log.info("INVALID_PROTOCOL has been received");
                 log.info(message.toJson());
                 datagramSocket.close();
                 break;
 
             case "CONNECTION_REFUSED":
-                log.info("CONNECTION_REFUSED");
+                log.info("CONNECTION_REFUSED has been received");
                 log.info(message.toJson());
                 handleHandShakeRefuse(datagramSocket,message);
                 datagramSocket.close();
                 break;
 
             case "HANDSHAKE_REQUEST":
-                log.info("HANDSHAKE_REQUEST");
+                log.info("HANDSHAKE_REQUEST has been received");
                 log.info(message.toJson());
                 handleHandShakeRequest(datagramSocket,message);
                 break;
 
             case"HANDSHAKE_RESPONSE":
-                log.info("HANDSHAKE_RESPONSE");
+                log.info("HANDSHAKE_RESPONSE has been received");
                 log.info(message.toJson());
                 handleHandShakeResponse(message);
                 break;
 
             case"DIRECTORY_CREATE_REQUEST":
-                log.info("DIRECTORY_CREATE_REQUEST");
+                log.info("DIRECTORY_CREATE_REQUEST has been received");
                 log.info(message.toJson());
                 handleDirectoryCreateRequest(datagramSocket,message,receivedPacket);
                 break;
 
             case"DIRECTORY_CREATE_RESPONSE":
-                log.info("DIRECTORY_CREATE_RESPONSE");
+                log.info("DIRECTORY_CREATE_RESPONSE has been received");
                 log.info(message.toJson());
                 break;
         }
@@ -177,6 +177,7 @@ public class PeerUDPLogic extends Thread {
             } else {
                 sendHandShakeResponse(datagramSocket,remoteHostPort);
                 peerList.add(remoteHostPort);
+                syncTimer();
                 serverMain.updatePeerList(peerList);
                 System.out.println("Output Successful");
             }
@@ -291,6 +292,7 @@ public class PeerUDPLogic extends Thread {
            DatagramPacket datagramPacket = new DatagramPacket(message,message.length,remotehostAddress,remoteHostPort.port);
            try {
                datagramSocket.send(datagramPacket);
+               log.info("the handshake response is already sent");
            } catch (IOException e) {
                e.printStackTrace();
            }
