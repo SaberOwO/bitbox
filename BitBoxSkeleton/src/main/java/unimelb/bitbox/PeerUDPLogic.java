@@ -66,12 +66,10 @@ public class PeerUDPLogic extends Thread {
     private void handleLogic(DatagramSocket datagramSocket,DatagramPacket receivedPacket){
         log.info("handshake info:"+new String(receivedPacket.getData()));
         try {
-        String receivedData = new String(receivedPacket.getData(),0,
-                receivedPacket.getLength(),"UTF-8");
-        log.info("receivedData"+receivedData);
-            Document message1 = Document.parse("");
+        String receivedData = new String(receivedPacket.getData(),0, receivedPacket.getLength(),"UTF-8");
         Document message = Document.parse(receivedData);
-        log.info(message.toJson());
+        log.info("Input: " + message.toJson());
+
         switch(message.getString("command")){
             case "INVALID_PROTOCOL":
                 log.info("INVALID_PROTOCOL");
@@ -87,7 +85,7 @@ public class PeerUDPLogic extends Thread {
                 break;
 
             case "HANDSHAKE_REQUEST":
-                log.info("HANDSHAKE_RESPONSE");
+                log.info("HANDSHAKE_REQUEST");
                 log.info(message.toJson());
                 handleHandShakeRequest(datagramSocket,message);
                 break;
@@ -157,7 +155,8 @@ public class PeerUDPLogic extends Thread {
             return;
         }
         peerList.add(remoteHostPort);
-      //  syncTimer();
+        serverMain.updatePeerList(peerList);
+        syncTimer();
     }
 
     private void handleHandShakeRefuse(DatagramSocket datagramSocket, Document message){
@@ -178,6 +177,8 @@ public class PeerUDPLogic extends Thread {
             } else {
                 sendHandShakeResponse(datagramSocket,remoteHostPort);
                 peerList.add(remoteHostPort);
+                serverMain.updatePeerList(peerList);
+                System.out.println("Output Successful");
             }
         } catch (Exception e) {
             HostPort remoteHostPort = new HostPort((Document) message.get("hostPort"));
@@ -191,7 +192,6 @@ public class PeerUDPLogic extends Thread {
         response.append("hostPort",new HostPort(localIp,localPort).toDoc());
         sendResponse(datagramSocket,response,remoteHostPort);
     }
-
 
     private void sendHandShakeRefuse(DatagramSocket datagramSocket,HostPort remoteHostPort){
         Document response = new Document();
@@ -256,7 +256,7 @@ public class PeerUDPLogic extends Thread {
     private void syncIt() {
         ArrayList<FileSystemManager.FileSystemEvent> eventList = fileSystemManager.generateSyncEvents();
         for (FileSystemManager.FileSystemEvent event: eventList) {
-            serverMain.processFileSystemEvent(event,peerList,datagramSocket);
+            serverMain.processFileSystemEvent(event);
         }
     }
 
@@ -279,14 +279,16 @@ public class PeerUDPLogic extends Thread {
    //handshake related response
    private void sendResponse(DatagramSocket datagramSocket,Document response,HostPort remoteHostPort){
        byte[] message = new byte[8192];
+
        try {
            message = response.toJson().getBytes("UTF-8");
        } catch (UnsupportedEncodingException e) {
            log.info("message is not in UTF8");
        }
+
        try {
            InetAddress remotehostAddress = InetAddress.getByName(remoteHostPort.host);
-           DatagramPacket datagramPacket = new DatagramPacket(message,message.length,remotehostAddress,hostPort.port);
+           DatagramPacket datagramPacket = new DatagramPacket(message,message.length,remotehostAddress,remoteHostPort.port);
            try {
                datagramSocket.send(datagramPacket);
            } catch (IOException e) {
@@ -327,6 +329,7 @@ public class PeerUDPLogic extends Thread {
                         if (receivePacket.getAddress().equals(remoteHost)) {
                             receivedResponse = true;
                             handleLogic(datagramSocket,datagramPacket);
+                            datagramSocket.setSoTimeout(0);
                         }
                     } catch (IOException e) {
                         e.printStackTrace();
