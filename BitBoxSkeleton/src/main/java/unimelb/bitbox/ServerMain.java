@@ -16,11 +16,14 @@ public class ServerMain implements FileSystemObserver {
 	private static Logger log = Logger.getLogger(ServerMain.class.getName());
 	protected FileSystemManager fileSystemManager;
 	private HashMap<Socket, BufferedWriter> socketWriter;
-
+	private static String mode = Configuration.getConfigurationValue("mode");
 	public ServerMain(HashMap<Socket, BufferedWriter> socketWriter) throws NumberFormatException, IOException,
 			NoSuchAlgorithmException {
 		fileSystemManager=new FileSystemManager(Configuration.getConfigurationValue("path"),this);
 		this.socketWriter = socketWriter;
+	}
+	public ServerMain()throws IOException,NoSuchAlgorithmException{
+		fileSystemManager=new FileSystemManager(Configuration.getConfigurationValue("path"),this);
 	}
 
 	// By analyze the information of fileSystemEvent to construct and send the request
@@ -28,30 +31,36 @@ public class ServerMain implements FileSystemObserver {
 		try {
 			switch (fileSystemEvent.event) {
 				case FILE_CREATE:
-					sendIt(constructCreateFileJson(fileSystemEvent));
-					log.info("FILE_CREATE message sent!");
+					if (mode.equals("tcp")) {
+						sendIt(constructCreateFileJson(fileSystemEvent));
+						log.info("FILE_CREATE message sent!");
+					}
 					break;
 
 				case FILE_DELETE:
-					sendIt(constructDeleteFileJson(fileSystemEvent));
-					log.info("FILE_DELETE message sent!");
-					break;
-
+					if (mode.equals("tcp")) {
+						sendIt(constructDeleteFileJson(fileSystemEvent));
+						log.info("FILE_DELETE message sent!");
+						break;
+					}
 				case FILE_MODIFY:
-					sendIt(constructModifyFileJson(fileSystemEvent));
-					log.info("FILE_MODIFY message sent!");
-					break;
-
+					if(mode.equals("tcp")) {
+						sendIt(constructModifyFileJson(fileSystemEvent));
+						log.info("FILE_MODIFY message sent!");
+						break;
+					}
 				case DIRECTORY_CREATE:
-					sendIt(constructCreateDirectory(fileSystemEvent));
-					log.info("DIRECTORY_CREATE message sent!");
-					break;
-
+					if(mode.equals("tcp")) {
+						sendIt(constructCreateDirectory(fileSystemEvent));
+						log.info("DIRECTORY_CREATE message sent!");
+						break;
+					}
 				case DIRECTORY_DELETE:
-					sendIt(constructDeleteDirectory(fileSystemEvent));
-					log.info("DIRECTORY_DELETE message sent!");
-					break;
-
+					if(mode.equals("tcp")) {
+						sendIt(constructDeleteDirectory(fileSystemEvent));
+						log.info("DIRECTORY_DELETE message sent!");
+						break;
+					}
 				default:
 					log.warning("Wrong request");
 			}
@@ -128,4 +137,5 @@ public class ServerMain implements FileSystemObserver {
 		fileDescriptor.append("fileSize", descriptor.fileSize);
 		return fileDescriptor;
 	}
+
 }
