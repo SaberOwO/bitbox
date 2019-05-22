@@ -202,7 +202,6 @@ public class PeerUDPLogic extends Thread {
                 peerList.add(remoteHostPort);
                 serverMain.updatePeerList(peerList);
                 syncTimer();
-                System.out.println("Output Successful");
             }
         } catch (Exception e) {
             HostPort remoteHostPort = new HostPort((Document) message.get("hostPort"));
@@ -214,6 +213,7 @@ public class PeerUDPLogic extends Thread {
         Document response = new Document();
         response.append("command", "HANDSHAKE_RESPONSE");
         response.append("hostPort",new HostPort(localIp,localPort).toDoc());
+        System.out.println("Handshake response: " + response.toString());
         sendResponse(datagramSocket,response,remoteHostPort);
     }
 
