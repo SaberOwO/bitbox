@@ -30,9 +30,9 @@ public class PeerUDPLogic extends Thread {
     private static int syncInterval = Integer.valueOf(Configuration.getConfigurationValue("syncInterval"));
 
 
-    public PeerUDPLogic(DatagramSocket datagramSocket,FileSystemManager fileSystemManager,
+    public PeerUDPLogic(DatagramSocket datagramSocket, FileSystemManager fileSystemManager,
                         ServerMain serverMain, boolean isFirst, ArrayList<HostPort> peerList,
-                        int maxConnection,HostPort hostPort) {
+                        int maxConnection, HostPort hostPort) {
         this.datagramSocket = datagramSocket;
         this.fileSystemManager = fileSystemManager;
         this.serverMain = serverMain;
@@ -43,18 +43,18 @@ public class PeerUDPLogic extends Thread {
     }
 
 
-    public void run(){
-        if (isFirst){
-            sendHandShakeRequest(datagramSocket,hostPort);
+    public void run() {
+        if (isFirst) {
+            sendHandShakeRequest(datagramSocket, hostPort);
         }
 
         while (true) {
             byte[] data = new byte[8192];
-            DatagramPacket receivedPacket = new DatagramPacket(data,data.length);
+            DatagramPacket receivedPacket = new DatagramPacket(data, data.length);
             try {
                 datagramSocket.receive(receivedPacket);
-                handleLogic(datagramSocket,receivedPacket);
-             //   syncTimer();
+                handleLogic(datagramSocket, receivedPacket);
+                //   syncTimer();
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -63,91 +63,80 @@ public class PeerUDPLogic extends Thread {
     }
 
 
-    private void handleLogic(DatagramSocket datagramSocket,DatagramPacket receivedPacket){
-        log.info("the received packet info:"+new String(receivedPacket.getData()));
+    private void handleLogic(DatagramSocket datagramSocket, DatagramPacket receivedPacket) {
         try {
-        String receivedData = new String(receivedPacket.getData(),0, receivedPacket.getLength(),"UTF-8");
-        Document message = Document.parse(receivedData);
-        log.info("Input: " + message.toJson());
+            String receivedData = new String(receivedPacket.getData(), 0, receivedPacket.getLength(), "UTF-8");
+            Document message = Document.parse(receivedData);
+            log.info("Received Message: " + message.toJson());
 
-        switch(message.getString("command")){
-            case "INVALID_PROTOCOL":
-                log.info("INVALID_PROTOCOL has been received");
-                log.info(message.toJson());
-                datagramSocket.close();
-                break;
+            switch (message.getString("command")) {
+                case "INVALID_PROTOCOL":
+                    log.info("INVALID_PROTOCOL has been received");
+                    datagramSocket.close();
+                    break;
 
-            case "CONNECTION_REFUSED":
-                log.info("CONNECTION_REFUSED has been received");
-                log.info(message.toJson());
-                handleHandShakeRefuse(datagramSocket,message);
-                datagramSocket.close();
-                break;
+                case "CONNECTION_REFUSED":
+                    log.info("CONNECTION_REFUSED has been received");
+                    handleHandShakeRefuse(datagramSocket, message);
+                    datagramSocket.close();
+                    break;
 
-            case "HANDSHAKE_REQUEST":
-                log.info("HANDSHAKE_REQUEST has been received");
-                log.info(message.toJson());
-                handleHandShakeRequest(datagramSocket,message);
-                break;
+                case "HANDSHAKE_REQUEST":
+                    log.info("HANDSHAKE_REQUEST has been received");
+                    handleHandShakeRequest(datagramSocket, message);
+                    break;
 
-            case"HANDSHAKE_RESPONSE":
-                log.info("HANDSHAKE_RESPONSE has been received");
-                log.info(message.toJson());
-                handleHandShakeResponse(message);
-                break;
+                case "HANDSHAKE_RESPONSE":
+                    log.info("HANDSHAKE_RESPONSE has been received");
+                    handleHandShakeResponse(message);
+                    break;
 
-            case"DIRECTORY_CREATE_REQUEST":
-                log.info("DIRECTORY_CREATE_REQUEST has been received");
-                log.info(message.toJson());
-                handleDirectoryCreateRequest(datagramSocket,message,receivedPacket);
-                break;
+                case "DIRECTORY_CREATE_REQUEST":
+                    log.info("DIRECTORY_CREATE_REQUEST has been received");
+                    handleDirectoryCreateRequest(datagramSocket, message, receivedPacket);
+                    break;
 
-            case"DIRECTORY_CREATE_RESPONSE":
-                log.info("DIRECTORY_CREATE_RESPONSE has been received");
-                log.info(message.toJson());
-                break;
+                case "DIRECTORY_CREATE_RESPONSE":
+                    log.info("DIRECTORY_CREATE_RESPONSE has been received");
+                    break;
 
-            case"DIRECTORY_DELETE_REQUEST":
-                log.info("DIRECTORY_DELETE_REQUEST has been received");
-                log.info(message.toJson());
-                handleDirectoryDeleteRequest(datagramSocket,message,receivedPacket);
-                break;
+                case "DIRECTORY_DELETE_REQUEST":
+                    log.info("DIRECTORY_DELETE_REQUEST has been received");
+                    handleDirectoryDeleteRequest(datagramSocket, message, receivedPacket);
+                    break;
 
-            case"DIRECTORY_DELETE_RESPONSE":
-                log.info("DIRECTORY_DELETE_RESPONSE has been received");
-                log.info(message.toJson());
-                break;
+                case "DIRECTORY_DELETE_RESPONSE":
+                    log.info("DIRECTORY_DELETE_RESPONSE has been received");
+                    break;
 
-            case"FILE_DELETE_REQUEST":
-                log.info("FILE_DELETE_REQUEST has been received");
-                log.info(message.toJson());
-                handleFileDeleteRequest(datagramSocket,message,receivedPacket);
-                break;
+                case "FILE_DELETE_REQUEST":
+                    log.info("FILE_DELETE_REQUEST has been received");
+                    handleFileDeleteRequest(datagramSocket, message, receivedPacket);
+                    break;
 
-            case "FILE_DELETE_RESPONSE":
-                log.info("FILE_DELETE_RESPONSE has been received");
-                log.info(message.toJson());
-                break;
-        }
+                case "FILE_DELETE_RESPONSE":
+                    log.info("FILE_DELETE_RESPONSE has been received");
+                    break;
+            }
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }
     }
 
-    private void sendHandShakeRequest(DatagramSocket datagramSocket,HostPort hostPort){
+    private void sendHandShakeRequest(DatagramSocket datagramSocket, HostPort hostPort) {
         try {
             String localHost = InetAddress.getLocalHost().getHostAddress();
-            HostPort localHostPort =new HostPort(localHost,
+            HostPort localHostPort = new HostPort(localHost,
                     datagramSocket.getLocalPort());
-            log.info("handshake comes from"+localHost);
+            log.info("handshake comes from" + localHost);
             Document message = constructHandShakeRequest(localHostPort);
-            sendInfo(datagramSocket,message,hostPort);
+            sendInfo(datagramSocket, message, hostPort);
         } catch (UnknownHostException e) {
             e.printStackTrace();
         }
     }
 
-    private Document constructHandShakeRequest(HostPort hostPort){
+    private Document constructHandShakeRequest(HostPort hostPort) {
         //construct message in document
         Document request = new Document();
         request.append("command", "HANDSHAKE_REQUEST");
@@ -159,12 +148,12 @@ public class PeerUDPLogic extends Thread {
     }
 
 
-    private void sendInvalidProtocol(DatagramSocket datagramSocket,HostPort remoteHostPort){
+    private void sendInvalidProtocol(DatagramSocket datagramSocket, HostPort remoteHostPort) {
         Document message = constructInvalidProtocol();
-        sendResponse(datagramSocket,message,remoteHostPort);
+        sendResponse(datagramSocket, message, remoteHostPort);
     }
 
-    private Document constructInvalidProtocol(){
+    private Document constructInvalidProtocol() {
         Document response = new Document();
         response.append("command", "INVALID_PROTOCOL");
         response.append("message", "message must contain a command field as string");
@@ -182,54 +171,54 @@ public class PeerUDPLogic extends Thread {
         syncTimer();
     }
 
-    private void handleHandShakeRefuse(DatagramSocket datagramSocket, Document message){
+    private void handleHandShakeRefuse(DatagramSocket datagramSocket, Document message) {
         log.info("Connection refused, trying to connect backup peer!");
         ArrayList<Document> peerList = (ArrayList<Document>) message.get("peers");
-        for(Document peer:peerList){
-            sendHandShakeRequest(datagramSocket,new HostPort(peer));
+        for (Document peer : peerList) {
+            sendHandShakeRequest(datagramSocket, new HostPort(peer));
         }
     }
 
-    private void handleHandShakeRequest(DatagramSocket datagramSocket,Document message){
+    private void handleHandShakeRequest(DatagramSocket datagramSocket, Document message) {
         try {
             HostPort remoteHostPort = new HostPort((Document) message.get("hostPort"));
             if (peerList.contains(remoteHostPort)) {
                 return;
             } else if (peerList.size() >= maxConnection) {
-                sendHandShakeRefuse(datagramSocket,remoteHostPort);
+                sendHandShakeRefuse(datagramSocket, remoteHostPort);
             } else {
-                sendHandShakeResponse(datagramSocket,remoteHostPort);
+                sendHandShakeResponse(datagramSocket, remoteHostPort);
                 peerList.add(remoteHostPort);
                 serverMain.updatePeerList(peerList);
                 syncTimer();
             }
         } catch (Exception e) {
             HostPort remoteHostPort = new HostPort((Document) message.get("hostPort"));
-            sendInvalidProtocol(datagramSocket,remoteHostPort);
+            sendInvalidProtocol(datagramSocket, remoteHostPort);
         }
     }
 
-    private void sendHandShakeResponse(DatagramSocket datagramSocket,HostPort remoteHostPort){
+    private void sendHandShakeResponse(DatagramSocket datagramSocket, HostPort remoteHostPort) {
         Document response = new Document();
         response.append("command", "HANDSHAKE_RESPONSE");
-        response.append("hostPort",new HostPort(localIp,localPort).toDoc());
-        System.out.println("Handshake response: " + response.toString());
-        sendResponse(datagramSocket,response,remoteHostPort);
+        response.append("hostPort", new HostPort(localIp, localPort).toDoc());
+        System.out.println("Handshake response Sent: " + response.toJson());
+        sendResponse(datagramSocket, response, remoteHostPort);
     }
 
-    private void sendHandShakeRefuse(DatagramSocket datagramSocket,HostPort remoteHostPort){
+    private void sendHandShakeRefuse(DatagramSocket datagramSocket, HostPort remoteHostPort) {
         Document response = new Document();
         response.append("command", "CONNECTION_REFUSED");
         response.append("message", "connection limit reached");
         ArrayList<Document> peers = new ArrayList<>();
-        for (HostPort peer: peerList) {
+        for (HostPort peer : peerList) {
             peers.add(peer.toDoc());
         }
         response.append("peers", peers);
-        sendResponse(datagramSocket,response,remoteHostPort);
+        sendResponse(datagramSocket, response, remoteHostPort);
     }
 
-    public void handleDirectoryCreateRequest(DatagramSocket datagramSocket,Document message,DatagramPacket receivedPacket){
+    public void handleDirectoryCreateRequest(DatagramSocket datagramSocket, Document message, DatagramPacket receivedPacket) {
         Document response = new Document();
         response.append("command", "DIRECTORY_CREATE_RESPONSE");
         String pathName = message.getString("pathName");
@@ -238,30 +227,30 @@ public class PeerUDPLogic extends Thread {
         if (flag == true) {
             response.append("message", "pathname already exists");
             response.append("status", false);
-            sendInfo(datagramSocket,receivedPacket,response);
-            return ;
+            sendInfo(datagramSocket, receivedPacket, response);
+            return;
         }
         flag = fileSystemManager.isSafePathName(pathName);
         if (flag == false) {
             response.append("message", "unsafe pathname given");
             response.append("status", false);
-            sendInfo(datagramSocket,receivedPacket,response);
-            return ;
+            sendInfo(datagramSocket, receivedPacket, response);
+            return;
         }
         flag = fileSystemManager.makeDirectory(pathName);
-        if(flag == false) {
+        if (flag == false) {
             response.append("message", "there was a problem creating the directory");
-            response.append("status",false);
-            sendInfo(datagramSocket,receivedPacket,response);
-        }else{
-            response.append("message","directory created");
-            response.append("status",true);
-            sendInfo(datagramSocket,receivedPacket,response);
+            response.append("status", false);
+            sendInfo(datagramSocket, receivedPacket, response);
+        } else {
+            response.append("message", "directory created");
+            response.append("status", true);
+            sendInfo(datagramSocket, receivedPacket, response);
         }
     }
 
-    public void handleDirectoryDeleteRequest(DatagramSocket datagramSocket,Document message,
-                                             DatagramPacket receivedPacket){
+    public void handleDirectoryDeleteRequest(DatagramSocket datagramSocket, Document message,
+                                             DatagramPacket receivedPacket) {
         Document response = new Document();
         response.append("command", "DIRECTORY_DELETE_RESPONSE");
         String pathName = message.getString("pathName");
@@ -270,30 +259,30 @@ public class PeerUDPLogic extends Thread {
         if (flag == false) {
             response.append("message", "path name does not exist");
             response.append("status", false);
-            sendInfo(datagramSocket,receivedPacket,response);
-            return ;
+            sendInfo(datagramSocket, receivedPacket, response);
+            return;
         }
         flag = fileSystemManager.isSafePathName(pathName);
         if (flag == false) {
             response.append("message", "unsafe path name given");
             response.append("status", false);
-            sendInfo(datagramSocket,receivedPacket,response);
-            return ;
+            sendInfo(datagramSocket, receivedPacket, response);
+            return;
         }
         flag = fileSystemManager.deleteDirectory(pathName);
         if (flag == false) {
             response.append("message", "there was a problem deleting the directory");
             response.append("status", false);
-            sendInfo(datagramSocket,receivedPacket,response);
+            sendInfo(datagramSocket, receivedPacket, response);
         } else {
             response.append("message", "directory deleted");
             response.append("status", true);
-            sendInfo(datagramSocket,receivedPacket,response);
+            sendInfo(datagramSocket, receivedPacket, response);
         }
     }
 
-    public void handleFileDeleteRequest(DatagramSocket datagramSocket,Document message,
-                                    DatagramPacket receivedPacket){
+    public void handleFileDeleteRequest(DatagramSocket datagramSocket, Document message,
+                                        DatagramPacket receivedPacket) {
         Document response = new Document();
         response.append("command", "FILE_DELETE_RESPONSE");
         response.append("fileDescriptor", constructFileDescriptor(message));
@@ -304,38 +293,38 @@ public class PeerUDPLogic extends Thread {
         if (flag == false) {
             response.append("message", "path name does not exist");
             response.append("status", false);
-            sendInfo(datagramSocket,receivedPacket,response);
+            sendInfo(datagramSocket, receivedPacket, response);
         }
         flag = fileSystemManager.isSafePathName(pathName);
         if (flag == false) {
             response.append("message", "unsafe path name given");
             response.append("status", false);
-            sendInfo(datagramSocket,receivedPacket,response);
+            sendInfo(datagramSocket, receivedPacket, response);
         }
         flag = fileSystemManager.deleteFile(pathName, descriptor.getLong("lastModified"),
                 descriptor.getString("md5"));
         if (flag == false) {
             response.append("message", "there was a problem deleting the file");
             response.append("status", false);
-            sendInfo(datagramSocket,receivedPacket,response);
+            sendInfo(datagramSocket, receivedPacket, response);
         } else {
             response.append("message", "file deleted");
             response.append("status", true);
-            sendInfo(datagramSocket,receivedPacket,response);
+            sendInfo(datagramSocket, receivedPacket, response);
         }
     }
 
     private Document constructFileDescriptor(Document message) {
-            return (Document) message.get("fileDescriptor");
-        }
+        return (Document) message.get("fileDescriptor");
+    }
 
     private void syncTimer() {
-        Runnable runnable = ()-> {
-            while(true) {
+        Runnable runnable = () -> {
+            while (true) {
                 syncIt();
                 try {
-                    Thread.sleep(syncInterval*1000);
-                }catch(InterruptedException e) {
+                    Thread.sleep(syncInterval * 1000);
+                } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
             }
@@ -347,54 +336,54 @@ public class PeerUDPLogic extends Thread {
 
     private void syncIt() {
         ArrayList<FileSystemManager.FileSystemEvent> eventList = fileSystemManager.generateSyncEvents();
-        for (FileSystemManager.FileSystemEvent event: eventList) {
+        for (FileSystemManager.FileSystemEvent event : eventList) {
             serverMain.processFileSystemEvent(event);
         }
     }
 
     //send response of file or document request
-   private void sendInfo(DatagramSocket datagramSocket,DatagramPacket datagramPacket,Document info){
-       byte[] message = new byte[8192];
-       try {
-           message = info.toJson().getBytes("UTF-8");
-       } catch (UnsupportedEncodingException e) {
-           log.info("message is not in UTF8");
-       }
-       DatagramPacket sendPacket = new DatagramPacket(message,message.length, datagramPacket.getAddress(),datagramPacket.getPort());
-       try {
-           datagramSocket.send(sendPacket);
-       } catch (IOException e) {
-           e.printStackTrace();
-       }
-   }
+    private void sendInfo(DatagramSocket datagramSocket, DatagramPacket datagramPacket, Document info) {
+        byte[] message = new byte[8192];
+        try {
+            message = info.toJson().getBytes("UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            log.info("message is not in UTF8");
+        }
+        DatagramPacket sendPacket = new DatagramPacket(message, message.length, datagramPacket.getAddress(), datagramPacket.getPort());
+        try {
+            datagramSocket.send(sendPacket);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
-   //handshake related response
-   private void sendResponse(DatagramSocket datagramSocket,Document response,HostPort remoteHostPort){
-       byte[] message = new byte[8192];
+    //handshake related response
+    private void sendResponse(DatagramSocket datagramSocket, Document response, HostPort remoteHostPort) {
+        byte[] message = new byte[8192];
 
-       try {
-           message = response.toJson().getBytes("UTF-8");
-       } catch (UnsupportedEncodingException e) {
-           log.info("message is not in UTF8");
-       }
+        try {
+            message = response.toJson().getBytes("UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            log.info("message is not in UTF8");
+        }
 
-       try {
-           InetAddress remotehostAddress = InetAddress.getByName(remoteHostPort.host);
-           DatagramPacket datagramPacket = new DatagramPacket(message,message.length,remotehostAddress,remoteHostPort.port);
-           try {
-               datagramSocket.send(datagramPacket);
-               log.info("the handshake response is already sent");
-           } catch (IOException e) {
-               e.printStackTrace();
-           }
-       } catch (UnknownHostException e) {
-           e.printStackTrace();
-       }
-   }
+        try {
+            InetAddress remotehostAddress = InetAddress.getByName(remoteHostPort.host);
+            DatagramPacket datagramPacket = new DatagramPacket(message, message.length, remotehostAddress, remoteHostPort.port);
+            try {
+                datagramSocket.send(datagramPacket);
+                log.info("the handshake response is already sent");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
+    }
 
 
-   //send handshake request info
-    private void sendInfo(DatagramSocket datagramSocket, Document info,HostPort hostPort){
+    //send handshake request info
+    private void sendInfo(DatagramSocket datagramSocket, Document info, HostPort hostPort) {
         byte[] message = new byte[8192];
         try {
             message = info.toJson().getBytes("UTF-8");
@@ -403,31 +392,31 @@ public class PeerUDPLogic extends Thread {
         }
         try {
             InetAddress remoteHost = InetAddress.getByName(hostPort.host);
-            log.info("handshake send to"+remoteHost.toString()+":"+hostPort.port);
-            DatagramPacket datagramPacket = new DatagramPacket(message,message.length,remoteHost,hostPort.port);
-                DatagramPacket receivePacket = new DatagramPacket(new byte[8192],8192);
-                boolean receivedResponse = false;
-                int tryTimes = 0;
-                while (!receivedResponse&&tryTimes<3) {
-                    try {
-                        datagramSocket.send(datagramPacket);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                    try {
-                        tryTimes += 1;
-                        datagramSocket.setSoTimeout(9000);
-                        datagramSocket.receive(receivePacket);
-                        if (receivePacket.getAddress().equals(remoteHost)) {
-                            receivedResponse = true;
-                            handleLogic(datagramSocket,datagramPacket);
-                            datagramSocket.setSoTimeout(0);
-                        }
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
+            log.info("handshake send to" + remoteHost.toString() + ":" + hostPort.port);
+            DatagramPacket datagramPacket = new DatagramPacket(message, message.length, remoteHost, hostPort.port);
+            DatagramPacket receivePacket = new DatagramPacket(new byte[8192], 8192);
+            boolean receivedResponse = false;
+            int tryTimes = 0;
+            while (!receivedResponse && tryTimes < 3) {
+                try {
+                    datagramSocket.send(datagramPacket);
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
-            if(receivedResponse==false) {
+                try {
+                    tryTimes += 1;
+                    datagramSocket.setSoTimeout(9000);
+                    datagramSocket.receive(receivePacket);
+                    if (receivePacket.getAddress().equals(remoteHost)) {
+                        receivedResponse = true;
+                        handleLogic(datagramSocket, datagramPacket);
+                        datagramSocket.setSoTimeout(0);
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (receivedResponse == false) {
                 try {
                     datagramSocket.setSoTimeout(0);
                 } catch (SocketException e) {
