@@ -849,6 +849,7 @@ public class FileSystemManager extends Thread {
 		return pathEvents;
 	}
 
+
 	private void removeHash(String name) {
 		HashSet<String> hs = hashMap.get(watchedFiles.get(name).md5);
 		hs.remove(name);

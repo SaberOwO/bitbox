@@ -223,6 +223,7 @@ public class ServerMain implements FileSystemObserver {
                         if (receivePacket.getAddress().equals(remoteHost)) {
                             receivedResponse = true;
                             log.info("the message has been received");
+                            datagramSocket.setSoTimeout(0);
                         }
                     } catch (IOException e) {
                         e.printStackTrace();
