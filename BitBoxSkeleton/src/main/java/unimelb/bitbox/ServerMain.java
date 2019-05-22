@@ -7,6 +7,7 @@ import java.net.*;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.logging.Logger;
 
 import unimelb.bitbox.util.*;
@@ -18,7 +19,9 @@ public class ServerMain implements FileSystemObserver {
     private HashMap<Socket, BufferedWriter> socketWriter;
     private static String mode = Configuration.getConfigurationValue("mode");
     private DatagramSocket datagramSocket;
-    private ArrayList<HostPort> peerList;
+    private ArrayList<HostPort> tempPeerList;
+    public HashMap<DatagramSocket, ArrayList<HostPort>> peersMap;
+
 
 
     public ServerMain(HashMap<Socket, BufferedWriter> socketWriter) throws NumberFormatException, IOException, NoSuchAlgorithmException {
@@ -26,14 +29,14 @@ public class ServerMain implements FileSystemObserver {
         this.socketWriter = socketWriter;
     }
 
-    public ServerMain(DatagramSocket datagramSocket, ArrayList<HostPort> peerList) throws IOException, NoSuchAlgorithmException {
+    public ServerMain(HashMap<DatagramSocket, ArrayList<HostPort>> peersMap,String mode) throws IOException, NoSuchAlgorithmException {
         fileSystemManager = new FileSystemManager(Configuration.getConfigurationValue("path"), this);
-        this.datagramSocket = datagramSocket;
-        this.peerList = peerList;
+        this.peersMap = peersMap;
+        this.mode = mode;
     }
 
-    public void updatePeerList(ArrayList<HostPort> peerList) {
-        this.peerList = peerList;
+    public void updateTempPeerList(ArrayList<HostPort> peerList) {
+        this.tempPeerList = peerList;
     }
 
 //    public void processFileSystemEvent(FileSystemEvent fileSystemEvent, ArrayList<HostPort> peerList,
@@ -78,7 +81,7 @@ public class ServerMain implements FileSystemObserver {
                         sendIt(constructCreateFileJson(fileSystemEvent));
                         log.info("FILE_CREATE message sent!");
                     } else {
-                        sendUDP(constructCreateFileJson(fileSystemEvent), peerList, datagramSocket);
+                        sendUDP(constructCreateFileJson(fileSystemEvent),peersMap);
                         log.info("FILE_CREATE message sent!");
                     }
                     break;
@@ -88,7 +91,7 @@ public class ServerMain implements FileSystemObserver {
                         sendIt(constructDeleteFileJson(fileSystemEvent));
                         log.info("FILE_DELETE message sent!");
                     } else {
-                        sendUDP(constructDeleteFileJson(fileSystemEvent), peerList, datagramSocket);
+                        sendUDP(constructDeleteFileJson(fileSystemEvent), peersMap);
                         log.info("FILE_DELETE message sent!");
                     }
                     break;
@@ -97,7 +100,7 @@ public class ServerMain implements FileSystemObserver {
                         sendIt(constructModifyFileJson(fileSystemEvent));
                         log.info("FILE_MODIFY message sent!");
                     } else {
-                        sendUDP(constructModifyFileJson(fileSystemEvent), peerList, datagramSocket);
+                        sendUDP(constructModifyFileJson(fileSystemEvent),peersMap);
                         log.info("FILE_MODIFY message sent!");
                     }
                     break;
@@ -106,7 +109,7 @@ public class ServerMain implements FileSystemObserver {
                         sendIt(constructCreateDirectory(fileSystemEvent));
                         log.info("DIRECTORY_CREATE message sent!");
                     } else {
-                        sendUDP(constructCreateDirectory(fileSystemEvent), peerList, datagramSocket);
+                        sendUDP(constructCreateDirectory(fileSystemEvent), peersMap);
                         log.info("DIRECTORY_CREATE message sent!");
                     }
                     break;
@@ -115,7 +118,7 @@ public class ServerMain implements FileSystemObserver {
                         sendIt(constructDeleteDirectory(fileSystemEvent));
                         log.info("DIRECTORY_DELETE message sent!");
                     } else {
-                        sendUDP(constructDeleteDirectory(fileSystemEvent), peerList, datagramSocket);
+                        sendUDP(constructDeleteDirectory(fileSystemEvent),peersMap);
                         log.info("DIRECTORY_DELETE message sent!");
                     }
                     break;
@@ -195,49 +198,52 @@ public class ServerMain implements FileSystemObserver {
         return fileDescriptor;
     }
 
-    public void sendUDP(String message, ArrayList<HostPort> peerList, DatagramSocket datagramSocket) {
-        for (HostPort peer : peerList) {
-            byte[] sendMessage = new byte[8192];
-            try {
-                sendMessage = message.getBytes("UTF-8");
-            } catch (UnsupportedEncodingException e) {
-                log.info("message is not in UTF8");
-            }
-            try {
-                InetAddress remoteHost = InetAddress.getByName(peer.host);
-                log.info("handshake send to" + remoteHost.toString() + ":" + peer.port);
-                DatagramPacket datagramPacket = new DatagramPacket(sendMessage, sendMessage.length, remoteHost, peer.port);
-                DatagramPacket receivePacket = new DatagramPacket(new byte[8192], 8192);
-                boolean receivedResponse = false;
-                int tryTimes = 0;
-                while (!receivedResponse && tryTimes < 3) {
-                    try {
-                        datagramSocket.send(datagramPacket);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                    try {
-                        tryTimes += 1;
-                        datagramSocket.setSoTimeout(9000);
-                        datagramSocket.receive(receivePacket);
-                        if (receivePacket.getAddress().equals(remoteHost)) {
-                            receivedResponse = true;
-                            log.info("the message has been received");
-                            datagramSocket.setSoTimeout(0);
+    public void sendUDP(String message, HashMap<DatagramSocket,ArrayList<HostPort>> peersMap) {
+        for (DatagramSocket datagramSocket:peersMap.keySet()) {
+            ArrayList<HostPort> peerList= peersMap.get(datagramSocket);
+            for(HostPort peer:peerList) {
+                byte[] sendMessage = new byte[8192];
+                try {
+                    sendMessage = message.getBytes("UTF-8");
+                } catch (UnsupportedEncodingException e) {
+                    log.info("message is not in UTF8");
+                }
+                try {
+                    InetAddress remoteHost = InetAddress.getByName(peer.host);
+                    log.info("handshake send to" + remoteHost.toString() + ":" + peer.port);
+                    DatagramPacket datagramPacket = new DatagramPacket(sendMessage, sendMessage.length, remoteHost, peer.port);
+                    DatagramPacket receivePacket = new DatagramPacket(new byte[8192], 8192);
+                    boolean receivedResponse = false;
+                    int tryTimes = 0;
+                    while (!receivedResponse && tryTimes < 3) {
+                        try {
+                            datagramSocket.send(datagramPacket);
+                        } catch (IOException e) {
+                            e.printStackTrace();
                         }
-                    } catch (IOException e) {
-                        e.printStackTrace();
+                        try {
+                            tryTimes += 1;
+                            datagramSocket.setSoTimeout(9000);
+                            datagramSocket.receive(receivePacket);
+                            if (receivePacket.getAddress().equals(remoteHost)) {
+                                receivedResponse = true;
+                                log.info("the message has been received");
+                                datagramSocket.setSoTimeout(0);
+                            }
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
                     }
-                }
-                if (receivedResponse == false) {
-                    try {
-                        datagramSocket.setSoTimeout(0);
-                    } catch (SocketException e) {
-                        e.printStackTrace();
+                    if (receivedResponse == false) {
+                        try {
+                            datagramSocket.setSoTimeout(0);
+                        } catch (SocketException e) {
+                            e.printStackTrace();
+                        }
                     }
+                } catch (UnknownHostException e) {
+                    e.printStackTrace();
                 }
-            } catch (UnknownHostException e) {
-                e.printStackTrace();
             }
 
         }

@@ -8,6 +8,7 @@ import java.net.Socket;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -29,7 +30,8 @@ public class Peer {
     private static ArrayList<HostPort> peerList = new ArrayList<>();
     private static HashMap<Socket, BufferedWriter> socketWriter = new HashMap<>();
     private static HashMap<Socket, BufferedReader> socketReader = new HashMap<>();
-
+    private static HashMap<DatagramSocket, ArrayList<HostPort>> peersMap = new HashMap<>();
+    private static ArrayList<HostPort> tempPeerList = new ArrayList<>();
     public static void main(String[] args) throws IOException, NumberFormatException, NoSuchAlgorithmException {
         System.setProperty("java.util.logging.SimpleFormatter.format",
                 "[%1$tc] %2$s %4$s: %5$s%n");
@@ -69,11 +71,13 @@ public class Peer {
                 runUDPServer(tpool);
             } else {
                 boolean flag = false;
+                ServerMain serverMain =new ServerMain(peersMap,"udp");
                 for (String peerInfo : peersInfo) {
                     HostPort hostPort = new HostPort(peerInfo);
-                    runUDPClient(hostPort, tpool);
+                    runUDPClient(hostPort, tpool,serverMain);
                     flag = true;
                 }
+                //when all peers in peerList cannot reach
                 if (!flag) {
                     log.info("First Peer In The CLUSTER");
                     runUDPServer(tpool);
@@ -101,10 +105,9 @@ public class Peer {
     }
 
 
-    private static void runUDPClient(HostPort hostPort, ExecutorService tpool) throws IOException, NoSuchAlgorithmException {
-
+    private static void runUDPClient(HostPort hostPort, ExecutorService tpool,
+                                     ServerMain serverMain) throws IOException, NoSuchAlgorithmException {
         DatagramSocket datagramSocket = new DatagramSocket();
-        ServerMain serverMain =new ServerMain(datagramSocket,peerList);
         tpool.execute(new PeerUDPLogic(datagramSocket, serverMain.fileSystemManager,
                 serverMain, true, peerList, maxConnection, hostPort));
     }
@@ -112,7 +115,7 @@ public class Peer {
     private static void runUDPServer(ExecutorService tpool) throws IOException, NoSuchAlgorithmException {
         DatagramSocket datagramSocket = new DatagramSocket(localPort);
         log.info("Listening at " + localPort);
-        ServerMain serverMain =new ServerMain(datagramSocket,peerList);
+        ServerMain serverMain =new ServerMain(peersMap,"udp");
         tpool.execute(new PeerUDPLogic(datagramSocket, serverMain.fileSystemManager,
                 serverMain, false, peerList, maxConnection, new HostPort(localIp, localPort)));
     }

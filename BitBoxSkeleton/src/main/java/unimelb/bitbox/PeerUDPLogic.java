@@ -88,7 +88,7 @@ public class PeerUDPLogic extends Thread {
 
                 case "HANDSHAKE_RESPONSE":
                     log.info("HANDSHAKE_RESPONSE has been received");
-                    handleHandShakeResponse(message);
+                    handleHandShakeResponse(datagramSocket,message);
                     break;
 
                 case "DIRECTORY_CREATE_REQUEST":
@@ -128,8 +128,8 @@ public class PeerUDPLogic extends Thread {
             String localHost = InetAddress.getLocalHost().getHostAddress();
             HostPort localHostPort = new HostPort(localHost,
                     datagramSocket.getLocalPort());
-            log.info("handshake comes from" + localHost);
             Document message = constructHandShakeRequest(localHostPort);
+            log.info("handshake request has been sent"+message.toString() );
             sendInfo(datagramSocket, message, hostPort);
         } catch (UnknownHostException e) {
             e.printStackTrace();
@@ -160,15 +160,15 @@ public class PeerUDPLogic extends Thread {
         return response;
     }
 
-    private void handleHandShakeResponse(Document message) {
+    private void handleHandShakeResponse(DatagramSocket datagramSocket,Document message) {
         log.info("Handshake finished");
         HostPort remoteHostPort = new HostPort((Document) message.get("hostPort"));
         if (peerList.contains(remoteHostPort)) {
             return;
         }
         peerList.add(remoteHostPort);
-        serverMain.updatePeerList(peerList);
-        syncTimer();
+        serverMain.peersMap.put(datagramSocket,peerList);
+     //   syncTimer();
     }
 
     private void handleHandShakeRefuse(DatagramSocket datagramSocket, Document message) {
@@ -189,8 +189,9 @@ public class PeerUDPLogic extends Thread {
             } else {
                 sendHandShakeResponse(datagramSocket, remoteHostPort);
                 peerList.add(remoteHostPort);
-                serverMain.updatePeerList(peerList);
-                syncTimer();
+                serverMain.peersMap.put(datagramSocket,peerList);
+
+            //    syncTimer();
             }
         } catch (Exception e) {
             HostPort remoteHostPort = new HostPort((Document) message.get("hostPort"));
