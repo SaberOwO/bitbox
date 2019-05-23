@@ -259,6 +259,7 @@ public class PeerUDPLogic extends Thread {
             ByteBuffer decode_content = ByteBuffer.wrap(Base64.getDecoder().decode(encode_content.getBytes()));
             Document file_bytes_fileDescriptor = (Document) message.get("fileDescriptor");
             String file_bytes_pathName = message.get("pathName").toString();
+
             long file_bytes_startPosition = (long) message.get("position");
             long content_length = (long) message.get("length");
 
@@ -266,7 +267,8 @@ public class PeerUDPLogic extends Thread {
             boolean flag_of_complete = fileSystemManager.checkWriteComplete(file_bytes_pathName);
 
             if (!flag_of_complete) {
-                sendNormalResponse(datagramSocket, receivedPacket, constructFileByteRequest(message, file_bytes_startPosition + content_length, blockSize));
+                HostPort remoteHostPort = new HostPort(receivedPacket.getAddress().getHostName(), receivedPacket.getPort());
+                sendRequest(datagramSocket, constructFileByteRequest(message, file_bytes_startPosition + content_length, blockSize), remoteHostPort);
             }
         } catch (IOException | NoSuchAlgorithmException e) {
             System.out.println(e);
@@ -526,20 +528,21 @@ public class PeerUDPLogic extends Thread {
         Document response = new Document();
 
         Document file_bytes_fileDescriptor = (Document) requestBody.get("fileDescriptor");
+
         String file_bytes_md5 = (String) file_bytes_fileDescriptor.get("md5");
         String file_bytes_pathName = (String) requestBody.get("pathName");
         long file_bytes_startPosition = (long) requestBody.get("position");
-        long file_bytes_fileSize = (long) file_bytes_fileDescriptor.get("fileSize");
+        long file_bytes_size = (long) file_bytes_fileDescriptor.get("length");
 
         response.append("command", "FILE_BYTES_RESPONSE");
         response.append("pathName", file_bytes_pathName);
         response.append("fileDescriptor", file_bytes_fileDescriptor);
         response.append("position", file_bytes_startPosition);
-        response.append("length", file_bytes_fileSize);
+        response.append("length", file_bytes_size);
 
         // Read file
         ByteBuffer content = null;
-        content = fileSystemManager.readFile(file_bytes_md5, file_bytes_startPosition, file_bytes_fileSize);
+        content = fileSystemManager.readFile(file_bytes_md5, file_bytes_startPosition, file_bytes_size);
 
         if (content == null) {
             response.append("message", "unsuccessful read");
