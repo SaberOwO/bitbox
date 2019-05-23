@@ -10,6 +10,9 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.logging.Logger;
 
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 import unimelb.bitbox.util.*;
 import unimelb.bitbox.util.FileSystemManager.FileSystemEvent;
 
@@ -200,6 +203,17 @@ public class ServerMain implements FileSystemObserver {
     }
 
     public void sendUDP(String message, HashMap<DatagramSocket, ArrayList<HostPort>> peersMap) {
+        // .DS_Store filter
+
+        try {
+            JSONParser parser = new JSONParser();
+            JSONObject message_json = (JSONObject) parser.parse(message);
+            System.out.println(message_json.get("pathName"));
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+
+
         for (DatagramSocket datagramSocket : peersMap.keySet()) {
             ArrayList<HostPort> peerList = peersMap.get(datagramSocket);
             for (HostPort peer : peerList) {
