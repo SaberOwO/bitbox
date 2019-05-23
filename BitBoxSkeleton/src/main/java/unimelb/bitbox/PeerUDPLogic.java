@@ -247,8 +247,9 @@ public class PeerUDPLogic extends Thread {
 
     private void handleFileBytesRequest(DatagramSocket datagramSocket, DatagramPacket receivedPacket, Document message) {
         try {
-            HostPort remoteHostPort = new HostPort(receivedPacket.getAddress().getHostName(), receivedPacket.getPort());
-            sendRequest(datagramSocket, constructFileByteResponse(message), remoteHostPort);
+//            HostPort remoteHostPort = new HostPort(receivedPacket.getAddress().getHostName(), receivedPacket.getPort());
+//            sendNormalResponse(datagramSocket, constructFileByteResponse(message), remoteHostPort);
+            sendNormalResponse(datagramSocket, receivedPacket, constructFileByteResponse(message));
         } catch (IOException | NoSuchAlgorithmException e) {
             System.out.println(e);
         }
