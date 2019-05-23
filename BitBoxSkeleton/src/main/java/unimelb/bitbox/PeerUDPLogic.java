@@ -33,6 +33,7 @@ public class PeerUDPLogic extends Thread {
     private static int localPort = Integer.valueOf(Configuration.getConfigurationValue("port"));
     private static int blockSize = Integer.valueOf(Configuration.getConfigurationValue("blockSize"));
     private static int syncInterval = Integer.valueOf(Configuration.getConfigurationValue("syncInterval"));
+    private static int timeout = Integer.valueOf(Configuration.getConfigurationValue("timeout"));
 
 
     public PeerUDPLogic(DatagramSocket datagramSocket, FileSystemManager fileSystemManager,
@@ -642,7 +643,7 @@ public class PeerUDPLogic extends Thread {
                 }
                 try {
                     tryTimes += 1;
-                    datagramSocket.setSoTimeout(9000);
+                    datagramSocket.setSoTimeout(timeout*1000);
                     datagramSocket.receive(receivePacket);
                     if (receivePacket.getAddress().equals(remoteHost)) {
                         receivedResponse = true;

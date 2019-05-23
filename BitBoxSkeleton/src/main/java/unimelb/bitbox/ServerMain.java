@@ -18,6 +18,7 @@ public class ServerMain implements FileSystemObserver {
     protected FileSystemManager fileSystemManager;
     private HashMap<Socket, BufferedWriter> socketWriter;
     private static String mode = Configuration.getConfigurationValue("mode");
+    private static int timeout = Integer.valueOf(Configuration.getConfigurationValue("timeout"));
     private DatagramSocket datagramSocket;
     private ArrayList<HostPort> tempPeerList;
     public HashMap<DatagramSocket, ArrayList<HostPort>> peersMap;
@@ -225,7 +226,7 @@ public class ServerMain implements FileSystemObserver {
                         }
                         try {
                             tryTimes += 1;
-                            datagramSocket.setSoTimeout(9000);
+                            datagramSocket.setSoTimeout(timeout*1000);
                             datagramSocket.receive(receivePacket);
                             if (receivePacket.getAddress().equals(remoteHost)) {
                                 receivedResponse = true;
