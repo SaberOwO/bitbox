@@ -80,9 +80,15 @@ public class PeerUDPLogic extends Thread {
             Document message = Document.parse(receivedData);
             log.info("Received Message: " + message.toJson());
 
-            if(message.getString("pathName").equals(".DS_Store")){
+            try {
+                if(message.getString("pathName").equals(".DS_Store")){
+                    System.out.println("Filtering DS_STORE!");
+                    return;
+                }
+            }catch (NullPointerException e){
                 return;
             }
+
 
             switch (message.getString("command")) {
                 case "INVALID_PROTOCOL":
