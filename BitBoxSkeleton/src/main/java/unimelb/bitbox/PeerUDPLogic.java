@@ -80,13 +80,12 @@ public class PeerUDPLogic extends Thread {
             Document message = Document.parse(receivedData);
             log.info("Received Message: " + message.toJson());
 
-            try {
+
+            if (message.getString("command").equals("HANDSHAKE_REQUEST") || message.getString("command").equals("HANDSHAKE_RESPONSE")){
                 if(message.getString("pathName").equals(".DS_Store")){
                     System.out.println("Filtering DS_STORE!");
                     return;
                 }
-            }catch (NullPointerException e){
-                return;
             }
 
 
