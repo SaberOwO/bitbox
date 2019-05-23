@@ -648,8 +648,9 @@ public class PeerUDPLogic extends Thread {
                     datagramSocket.receive(receivePacket);
                     if (receivePacket.getAddress().equals(remoteHost)) {
                         receivedResponse = true;
-                        handleLogic(datagramSocket, receivePacket);
                         datagramSocket.setSoTimeout(0);
+                        handleLogic(datagramSocket, receivePacket);
+
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
