@@ -74,19 +74,17 @@ public class PeerUDPLogic extends Thread {
 
     private void handleLogic(DatagramSocket datagramSocket, DatagramPacket receivedPacket) {
         try {
-
-
             String receivedData = new String(receivedPacket.getData(), 0, receivedPacket.getLength(), "UTF-8");
             Document message = Document.parse(receivedData);
             log.info("Received Message: " + message.toJson());
 
 
-//            if (message.getString("command").equals("HANDSHAKE_REQUEST") || message.getString("command").equals("HANDSHAKE_RESPONSE")){
-//                if(message.getString("pathName").equals(".DS_Store")){
-//                    System.out.println("Filtering DS_STORE!");
-//                    return;
-//                }
-//            }
+            if (!message.getString("command").equals("HANDSHAKE_REQUEST") || !message.getString("command").equals("HANDSHAKE_RESPONSE")){
+                if(message.getString("pathName").equals(".DS_Store")){
+                    System.out.println("Filtering DS_STORE!");
+                    return;
+                }
+            }
 
 
             switch (message.getString("command")) {
