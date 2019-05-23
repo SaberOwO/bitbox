@@ -19,7 +19,7 @@ public class ServerMain implements FileSystemObserver {
     private HashMap<Socket, BufferedWriter> socketWriter;
     private static String mode = Configuration.getConfigurationValue("mode");
     private static int timeout = Integer.valueOf(Configuration.getConfigurationValue("timeout"));
-    private static int packageSize = Integer.valueOf(Configuration.getConfigurationValue("packageSize"));
+    private static int packageSize = Integer.valueOf(Configuration.getConfigurationValue("packetSize"));
     private DatagramSocket datagramSocket;
     private ArrayList<HostPort> tempPeerList;
     public HashMap<DatagramSocket, ArrayList<HostPort>> peersMap;

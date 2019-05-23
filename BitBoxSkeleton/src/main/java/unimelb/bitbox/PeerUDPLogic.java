@@ -32,7 +32,7 @@ public class PeerUDPLogic extends Thread {
     private static String localIp = Configuration.getConfigurationValue("advertisedName");
     private static int localPort = Integer.valueOf(Configuration.getConfigurationValue("port"));
     private static int blockSize = Integer.valueOf(Configuration.getConfigurationValue("blockSize"));
-    private static int packageSize = Integer.valueOf(Configuration.getConfigurationValue("packageSize"));
+    private static int packageSize = Integer.valueOf(Configuration.getConfigurationValue("packetSize"));
     private static int syncInterval = Integer.valueOf(Configuration.getConfigurationValue("syncInterval"));
     private static int timeout = Integer.valueOf(Configuration.getConfigurationValue("timeout"));
 
