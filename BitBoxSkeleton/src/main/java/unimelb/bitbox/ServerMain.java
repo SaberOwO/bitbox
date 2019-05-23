@@ -25,13 +25,12 @@ public class ServerMain implements FileSystemObserver {
     public HashMap<DatagramSocket, ArrayList<HostPort>> peersMap;
 
 
-
     public ServerMain(HashMap<Socket, BufferedWriter> socketWriter) throws NumberFormatException, IOException, NoSuchAlgorithmException {
         fileSystemManager = new FileSystemManager(Configuration.getConfigurationValue("path"), this);
         this.socketWriter = socketWriter;
     }
 
-    public ServerMain(HashMap<DatagramSocket, ArrayList<HostPort>> peersMap,String mode) throws IOException, NoSuchAlgorithmException {
+    public ServerMain(HashMap<DatagramSocket, ArrayList<HostPort>> peersMap, String mode) throws IOException, NoSuchAlgorithmException {
         fileSystemManager = new FileSystemManager(Configuration.getConfigurationValue("path"), this);
         this.peersMap = peersMap;
         this.mode = mode;
@@ -83,7 +82,7 @@ public class ServerMain implements FileSystemObserver {
                         sendIt(constructCreateFileJson(fileSystemEvent));
                         log.info("FILE_CREATE message sent!");
                     } else {
-                        sendUDP(constructCreateFileJson(fileSystemEvent),peersMap);
+                        sendUDP(constructCreateFileJson(fileSystemEvent), peersMap);
                         log.info("FILE_CREATE message sent!");
                     }
                     break;
@@ -102,7 +101,7 @@ public class ServerMain implements FileSystemObserver {
                         sendIt(constructModifyFileJson(fileSystemEvent));
                         log.info("FILE_MODIFY message sent!");
                     } else {
-                        sendUDP(constructModifyFileJson(fileSystemEvent),peersMap);
+                        sendUDP(constructModifyFileJson(fileSystemEvent), peersMap);
                         log.info("FILE_MODIFY message sent!");
                     }
                     break;
@@ -120,7 +119,7 @@ public class ServerMain implements FileSystemObserver {
                         sendIt(constructDeleteDirectory(fileSystemEvent));
                         log.info("DIRECTORY_DELETE message sent!");
                     } else {
-                        sendUDP(constructDeleteDirectory(fileSystemEvent),peersMap);
+                        sendUDP(constructDeleteDirectory(fileSystemEvent), peersMap);
                         log.info("DIRECTORY_DELETE message sent!");
                     }
                     break;
@@ -200,10 +199,10 @@ public class ServerMain implements FileSystemObserver {
         return fileDescriptor;
     }
 
-    public void sendUDP(String message, HashMap<DatagramSocket,ArrayList<HostPort>> peersMap) {
-        for (DatagramSocket datagramSocket:peersMap.keySet()) {
-            ArrayList<HostPort> peerList= peersMap.get(datagramSocket);
-            for(HostPort peer:peerList) {
+    public void sendUDP(String message, HashMap<DatagramSocket, ArrayList<HostPort>> peersMap) {
+        for (DatagramSocket datagramSocket : peersMap.keySet()) {
+            ArrayList<HostPort> peerList = peersMap.get(datagramSocket);
+            for (HostPort peer : peerList) {
                 byte[] sendMessage = new byte[packageSize];
                 try {
                     sendMessage = message.getBytes("UTF-8");
@@ -217,28 +216,33 @@ public class ServerMain implements FileSystemObserver {
 
                     DatagramPacket datagramPacket = new DatagramPacket(sendMessage, sendMessage.length, remoteHost, peer.port);
                     DatagramPacket receivePacket = new DatagramPacket(new byte[packageSize], packageSize);
+
                     boolean receivedResponse = false;
                     int tryTimes = 0;
-                    while (!receivedResponse && tryTimes < 3) {
+
+                    while (!receivedResponse && tryTimes < 5) {
                         try {
                             datagramSocket.send(datagramPacket);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                        try {
                             tryTimes += 1;
-                            datagramSocket.setSoTimeout(timeout*1000);
+                            datagramSocket.setSoTimeout(timeout * 1000);
                             datagramSocket.receive(receivePacket);
                             if (receivePacket.getAddress().equals(remoteHost)) {
                                 receivedResponse = true;
-                                log.info("the message has been received");
+                                System.out.println("###########################");
+                                System.out.println("Message Content: " + message);
+                                System.out.println("(OK) The message has got response in time.");
+                                System.out.println("###########################");
                                 datagramSocket.setSoTimeout(0);
                             }
                         } catch (IOException e) {
-                            e.printStackTrace();
+                            System.out.println("###########################");
+                            System.out.println("Message Content: " + message);
+                            System.out.println("Retry time: " + tryTimes);
+                            System.out.println("(ERROR) The message does not get response in time.");
+                            System.out.println("###########################");
                         }
                     }
-                    if (receivedResponse == false) {
+                    if (!receivedResponse) {
                         try {
                             datagramSocket.setSoTimeout(0);
                         } catch (SocketException e) {

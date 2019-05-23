@@ -337,6 +337,7 @@ public class PeerUDPLogic extends Thread {
         String pathName = message.getString("pathName");
         response.append("pathName", pathName);
         boolean flag = fileSystemManager.dirNameExists(pathName);
+
         if (flag == false) {
             response.append("message", "path name does not exist");
             response.append("status", false);
