@@ -74,9 +74,15 @@ public class PeerUDPLogic extends Thread {
 
     private void handleLogic(DatagramSocket datagramSocket, DatagramPacket receivedPacket) {
         try {
+
+
             String receivedData = new String(receivedPacket.getData(), 0, receivedPacket.getLength(), "UTF-8");
             Document message = Document.parse(receivedData);
             log.info("Received Message: " + message.toJson());
+
+            if(message.getString("pathName").equals(".DS_Store")){
+                return;
+            }
 
             switch (message.getString("command")) {
                 case "INVALID_PROTOCOL":
