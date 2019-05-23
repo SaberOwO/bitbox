@@ -59,6 +59,7 @@ public class PeerUDPLogic extends Thread {
             byte[] data = new byte[packageSize];
             DatagramPacket receivedPacket = new DatagramPacket(data, data.length);
             try {
+                datagramSocket.setSoTimeout(0);
                 datagramSocket.receive(receivedPacket);
                 if (!receivedPacket.getAddress().equals(InetAddress.getByName(localIp))) {
                     handleLogic(datagramSocket, receivedPacket);
