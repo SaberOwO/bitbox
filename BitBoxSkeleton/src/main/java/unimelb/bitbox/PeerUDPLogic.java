@@ -532,17 +532,17 @@ public class PeerUDPLogic extends Thread {
         String file_bytes_md5 = (String) file_bytes_fileDescriptor.get("md5");
         String file_bytes_pathName = (String) requestBody.get("pathName");
         long file_bytes_startPosition = (long) requestBody.get("position");
-        long file_bytes_size = (long) file_bytes_fileDescriptor.get("length");
+        long file_bytes_length = (long) requestBody.get("length");
 
         response.append("command", "FILE_BYTES_RESPONSE");
         response.append("pathName", file_bytes_pathName);
         response.append("fileDescriptor", file_bytes_fileDescriptor);
         response.append("position", file_bytes_startPosition);
-        response.append("length", file_bytes_size);
+        response.append("length", file_bytes_length);
 
         // Read file
         ByteBuffer content = null;
-        content = fileSystemManager.readFile(file_bytes_md5, file_bytes_startPosition, file_bytes_size);
+        content = fileSystemManager.readFile(file_bytes_md5, file_bytes_startPosition, file_bytes_length);
 
         if (content == null) {
             response.append("message", "unsuccessful read");
