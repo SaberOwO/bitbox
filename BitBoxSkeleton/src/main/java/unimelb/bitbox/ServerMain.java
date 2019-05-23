@@ -19,7 +19,7 @@ public class ServerMain implements FileSystemObserver {
     private HashMap<Socket, BufferedWriter> socketWriter;
     private static String mode = Configuration.getConfigurationValue("mode");
     private static int timeout = Integer.valueOf(Configuration.getConfigurationValue("timeout"));
-    private static int blockSize = Integer.valueOf(Configuration.getConfigurationValue("blockSize"));
+    private static int packageSize = Integer.valueOf(Configuration.getConfigurationValue("packageSize"));
     private DatagramSocket datagramSocket;
     private ArrayList<HostPort> tempPeerList;
     public HashMap<DatagramSocket, ArrayList<HostPort>> peersMap;
@@ -204,7 +204,7 @@ public class ServerMain implements FileSystemObserver {
         for (DatagramSocket datagramSocket:peersMap.keySet()) {
             ArrayList<HostPort> peerList= peersMap.get(datagramSocket);
             for(HostPort peer:peerList) {
-                byte[] sendMessage = new byte[blockSize];
+                byte[] sendMessage = new byte[packageSize];
                 try {
                     sendMessage = message.getBytes("UTF-8");
                 } catch (UnsupportedEncodingException e) {
@@ -216,7 +216,7 @@ public class ServerMain implements FileSystemObserver {
                     log.info("Packet content: " + message);
 
                     DatagramPacket datagramPacket = new DatagramPacket(sendMessage, sendMessage.length, remoteHost, peer.port);
-                    DatagramPacket receivePacket = new DatagramPacket(new byte[blockSize], blockSize);
+                    DatagramPacket receivePacket = new DatagramPacket(new byte[packageSize], packageSize);
                     boolean receivedResponse = false;
                     int tryTimes = 0;
                     while (!receivedResponse && tryTimes < 3) {

@@ -32,6 +32,7 @@ public class PeerUDPLogic extends Thread {
     private static String localIp = Configuration.getConfigurationValue("advertisedName");
     private static int localPort = Integer.valueOf(Configuration.getConfigurationValue("port"));
     private static int blockSize = Integer.valueOf(Configuration.getConfigurationValue("blockSize"));
+    private static int packageSize = Integer.valueOf(Configuration.getConfigurationValue("packageSize"));
     private static int syncInterval = Integer.valueOf(Configuration.getConfigurationValue("syncInterval"));
     private static int timeout = Integer.valueOf(Configuration.getConfigurationValue("timeout"));
 
@@ -55,7 +56,7 @@ public class PeerUDPLogic extends Thread {
         }
 
         while (true) {
-            byte[] data = new byte[blockSize];
+            byte[] data = new byte[packageSize];
             DatagramPacket receivedPacket = new DatagramPacket(data, data.length);
             try {
                 datagramSocket.receive(receivedPacket);
@@ -578,7 +579,7 @@ public class PeerUDPLogic extends Thread {
 
     //send response of file or document request
     private void sendNormalResponse(DatagramSocket datagramSocket, DatagramPacket datagramPacket, Document info) {
-        byte[] message = new byte[blockSize];
+        byte[] message = new byte[packageSize];
         try {
             message = info.toJson().getBytes("UTF-8");
         } catch (UnsupportedEncodingException e) {
@@ -596,7 +597,7 @@ public class PeerUDPLogic extends Thread {
 
     //handshake related response
     private void sendHandshakeResponse(DatagramSocket datagramSocket, Document response, HostPort remoteHostPort) {
-        byte[] message = new byte[blockSize];
+        byte[] message = new byte[packageSize];
 
         try {
             message = response.toJson().getBytes("UTF-8");
@@ -620,7 +621,7 @@ public class PeerUDPLogic extends Thread {
 
     //send handshake request info
     private void sendRequest(DatagramSocket datagramSocket, Document info, HostPort hostPort) {
-        byte[] message = new byte[blockSize];
+        byte[] message = new byte[packageSize];
         try {
             message = info.toJson().getBytes("UTF-8");
         } catch (UnsupportedEncodingException e) {
@@ -632,7 +633,7 @@ public class PeerUDPLogic extends Thread {
             log.info("Request Content: " + info.toJson());
 
             DatagramPacket datagramPacket = new DatagramPacket(message, message.length, remoteHost, hostPort.port);
-            DatagramPacket receivePacket = new DatagramPacket(new byte[blockSize], blockSize);
+            DatagramPacket receivePacket = new DatagramPacket(new byte[packageSize], packageSize);
             boolean receivedResponse = false;
             int tryTimes = 0;
             while (!receivedResponse && tryTimes < 3) {
