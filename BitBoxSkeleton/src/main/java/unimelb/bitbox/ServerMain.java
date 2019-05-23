@@ -209,6 +209,9 @@ public class ServerMain implements FileSystemObserver {
             JSONParser parser = new JSONParser();
             JSONObject message_json = (JSONObject) parser.parse(message);
             System.out.println(message_json.get("pathName"));
+            if(message_json.get("pathName").equals(".DS_Store")){
+                return;
+            }
         } catch (ParseException e) {
             e.printStackTrace();
         }
