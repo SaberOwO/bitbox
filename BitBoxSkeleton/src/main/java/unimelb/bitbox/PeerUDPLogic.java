@@ -101,12 +101,24 @@ public class PeerUDPLogic extends Thread {
                 case "FILE_CREATE_REQUEST":
                     log.info("FILE_CREATE_REQUEST");
                     log.info(message.toJson());
-                    handleFileCreateRequest(datagramSocket, receivedPacket, message);
+                    handleFileCreateRequest(datagramSocket, message, receivedPacket);
                     break;
 
                 case "FILE_CREATE_RESPONSE":
                     log.info("FILE_CREATE_RESPONSE");
                     log.info(message.toJson());
+                    break;
+
+                case "FILE_MODIFY_REQUEST":
+                    log.info("FILE_MODIFY_REQUEST");
+                    log.info(message.toJson());
+                    handleFileModifyRequest(datagramSocket, message, receivedPacket);
+                    break;
+
+                case "FILE_MODIFY_RESPONSE":
+                    log.info("FILE_MODIFY_RESPONSE");
+                    log.info(message.toJson());
+                    // Nothing needs to handle
                     break;
 
                 case "FILE_BYTES_REQUEST":
@@ -217,8 +229,7 @@ public class PeerUDPLogic extends Thread {
         }
     }
 
-    // handle file Create request
-    private void handleFileCreateRequest(DatagramSocket datagramSocket, DatagramPacket receivedPacket, Document message) {
+    private void handleFileCreateRequest(DatagramSocket datagramSocket, Document message, DatagramPacket receivedPacket) {
         try {
             Document FILE_CREATE_RESPONSE = constructFileCreateResponse(message);
             sendNormalResponse(datagramSocket, receivedPacket, FILE_CREATE_RESPONSE);
@@ -238,7 +249,6 @@ public class PeerUDPLogic extends Thread {
         }
     }
 
-    // handle file bytes request
     private void handleFileBytesRequest(DatagramSocket datagramSocket, DatagramPacket receivedPacket, Document message) {
         try {
             sendNormalResponse(datagramSocket, receivedPacket, constructFileByteResponse(message));
@@ -381,6 +391,22 @@ public class PeerUDPLogic extends Thread {
         }
     }
 
+    private void handleFileModifyRequest(DatagramSocket datagramSocket, Document message, DatagramPacket receivedPacket) {
+        try {
+            Document FILE_MODIFY_RESPONSE = constructFileModifyResponse(message);
+            sendNormalResponse(datagramSocket, receivedPacket, FILE_MODIFY_RESPONSE);
+
+            if ((boolean) FILE_MODIFY_RESPONSE.get("status")) {
+                HostPort remoteHostPort = new HostPort(receivedPacket.getAddress().getHostName(), receivedPacket.getPort());
+                Document FIRST_FILE_BYTE_REQUEST = constructFileByteRequest(message, 0, blockSize);
+                sendRequest(datagramSocket, FIRST_FILE_BYTE_REQUEST, remoteHostPort);
+            }
+
+        }catch (IOException | NoSuchAlgorithmException e){
+            System.out.println(e);
+        }
+    }
+
     private Document constructFileDescriptor(Document message) {
         return (Document) message.get("fileDescriptor");
     }
@@ -432,6 +458,52 @@ public class PeerUDPLogic extends Thread {
                 return response;
             }
         } else {
+            response.append("status", false);
+            response.append("message", "Unsafe path given!");
+            return response;
+        }
+    }
+
+    private Document constructFileModifyResponse(Document message) throws IOException, NoSuchAlgorithmException {
+        Document response = new Document();
+        String file_pathName = (String) message.get("pathName");
+        Document file_create_fileDescriptor = constructFileDescriptor(message);
+        String file_md5 = (String) file_create_fileDescriptor.get("md5");
+        long file_create_lastModified = (long) file_create_fileDescriptor.get("lastModified");
+
+        response.append("command", "FILE_MODIFY_RESPONSE");
+        response.append("fileDescriptor", file_create_fileDescriptor);
+        response.append("pathName", file_pathName);
+
+        boolean SF_flag = fileSystemManager.isSafePathName(file_pathName);
+        boolean FN_flag = fileSystemManager.fileNameExists(file_pathName);
+        boolean FC_flag = fileSystemManager.fileNameExists(file_pathName, file_md5);
+
+        if (SF_flag && !FN_flag){
+            if (!FC_flag){
+                boolean File_modify_loder_flag = false;
+
+                File_modify_loder_flag = fileSystemManager.modifyFileLoader(file_pathName, file_md5, file_create_lastModified);
+
+                if (File_modify_loder_flag){
+                    response.append("status", true);
+                    response.append("message", "File create loader ready!");
+                    return response;
+                }
+                else{
+                    response.append("status", false);
+                    response.append("message", "there was a problem modifying the file!");
+                    return response;
+                }
+            }
+            else{
+                response.append("status", false);
+                response.append("message", "file already exists with matching content!");
+                return response;
+            }
+
+        }
+        else{
             response.append("status", false);
             response.append("message", "Unsafe path given!");
             return response;
@@ -559,7 +631,7 @@ public class PeerUDPLogic extends Thread {
         }
         try {
             InetAddress remoteHost = InetAddress.getByName(hostPort.host);
-            log.info("handshake send to" + remoteHost.toString() + ":" + hostPort.port);
+            log.info("Message send to" + remoteHost.toString() + ":" + hostPort.port);
             DatagramPacket datagramPacket = new DatagramPacket(message, message.length, remoteHost, hostPort.port);
             DatagramPacket receivePacket = new DatagramPacket(new byte[8192], 8192);
             boolean receivedResponse = false;
