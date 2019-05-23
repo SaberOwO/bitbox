@@ -55,7 +55,7 @@ public class PeerUDPLogic extends Thread {
         }
 
         while (true) {
-            byte[] data = new byte[8192];
+            byte[] data = new byte[blockSize];
             DatagramPacket receivedPacket = new DatagramPacket(data, data.length);
             try {
                 datagramSocket.receive(receivedPacket);
@@ -578,7 +578,7 @@ public class PeerUDPLogic extends Thread {
 
     //send response of file or document request
     private void sendNormalResponse(DatagramSocket datagramSocket, DatagramPacket datagramPacket, Document info) {
-        byte[] message = new byte[8192];
+        byte[] message = new byte[blockSize];
         try {
             message = info.toJson().getBytes("UTF-8");
         } catch (UnsupportedEncodingException e) {
@@ -596,7 +596,7 @@ public class PeerUDPLogic extends Thread {
 
     //handshake related response
     private void sendHandshakeResponse(DatagramSocket datagramSocket, Document response, HostPort remoteHostPort) {
-        byte[] message = new byte[8192];
+        byte[] message = new byte[blockSize];
 
         try {
             message = response.toJson().getBytes("UTF-8");
@@ -620,7 +620,7 @@ public class PeerUDPLogic extends Thread {
 
     //send handshake request info
     private void sendRequest(DatagramSocket datagramSocket, Document info, HostPort hostPort) {
-        byte[] message = new byte[8192];
+        byte[] message = new byte[blockSize];
         try {
             message = info.toJson().getBytes("UTF-8");
         } catch (UnsupportedEncodingException e) {
@@ -632,7 +632,7 @@ public class PeerUDPLogic extends Thread {
             log.info("Request Content: " + info.toJson());
 
             DatagramPacket datagramPacket = new DatagramPacket(message, message.length, remoteHost, hostPort.port);
-            DatagramPacket receivePacket = new DatagramPacket(new byte[8192], 8192);
+            DatagramPacket receivePacket = new DatagramPacket(new byte[blockSize], blockSize);
             boolean receivedResponse = false;
             int tryTimes = 0;
             while (!receivedResponse && tryTimes < 3) {
