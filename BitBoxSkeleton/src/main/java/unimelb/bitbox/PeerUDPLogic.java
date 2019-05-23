@@ -486,7 +486,8 @@ public class PeerUDPLogic extends Thread {
         boolean FN_flag = fileSystemManager.fileNameExists(file_pathName);
         boolean FC_flag = fileSystemManager.fileNameExists(file_pathName, file_md5);
 
-        if (SF_flag && !FN_flag){
+//        if (SF_flag && !FN_flag){
+        if(!FN_flag){
             if (!FC_flag){
                 boolean File_modify_loder_flag = false;
 
