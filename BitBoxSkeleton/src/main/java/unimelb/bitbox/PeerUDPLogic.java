@@ -271,8 +271,7 @@ public class PeerUDPLogic extends Thread {
             if (!flag_of_complete) {
                 HostPort remoteHostPort = new HostPort(receivedPacket.getAddress().getHostName(), receivedPacket.getPort());
                 sendRequest(datagramSocket, constructFileByteRequest(message, file_bytes_startPosition + content_length, blockSize), remoteHostPort);
-            }
-            else{
+            } else {
                 fileSystemManager.scanDirectoryTree(file_bytes_pathName);
                 log.info("FILE READ SUCCESSFUL!");
             }
@@ -408,7 +407,7 @@ public class PeerUDPLogic extends Thread {
                 sendRequest(datagramSocket, FIRST_FILE_BYTE_REQUEST, remoteHostPort);
             }
 
-        }catch (IOException | NoSuchAlgorithmException e){
+        } catch (IOException | NoSuchAlgorithmException e) {
             System.out.println(e);
         }
     }
@@ -487,31 +486,50 @@ public class PeerUDPLogic extends Thread {
         boolean FC_flag = fileSystemManager.fileNameExists(file_pathName, file_md5);
 
 //        if (SF_flag && !FN_flag){
-        if(!FN_flag){
-            if (!FC_flag){
-                boolean File_modify_loder_flag = false;
+//            if (!FC_flag){
+//                boolean File_modify_loder_flag = false;
+//
+//                File_modify_loder_flag = fileSystemManager.modifyFileLoader(file_pathName, file_md5, file_create_lastModified);
+//
+//                if (File_modify_loder_flag){
+//                    response.append("status", true);
+//                    response.append("message", "File create loader ready!");
+//                    return response;
+//                }
+//                else{
+//                    response.append("status", false);
+//                    response.append("message", "there was a problem modifying the file!");
+//                    return response;
+//                }
+//            }
+//            else{
+//                response.append("status", false);
+//                response.append("message", "file already exists with matching content!");
+//                return response;
+//            }
+//
+//        }
+//        else{
+//            response.append("status", false);
+//            response.append("message", "Unsafe path given!");
+//            return response;
+//        }
+        if (SF_flag) {
+            boolean File_modify_loder_flag = false;
 
-                File_modify_loder_flag = fileSystemManager.modifyFileLoader(file_pathName, file_md5, file_create_lastModified);
+            File_modify_loder_flag = fileSystemManager.modifyFileLoader(file_pathName, file_md5, file_create_lastModified);
 
-                if (File_modify_loder_flag){
-                    response.append("status", true);
-                    response.append("message", "File create loader ready!");
-                    return response;
-                }
-                else{
-                    response.append("status", false);
-                    response.append("message", "there was a problem modifying the file!");
-                    return response;
-                }
-            }
-            else{
+            if (File_modify_loder_flag) {
+                response.append("status", true);
+                response.append("message", "File create loader ready!");
+                return response;
+            } else {
                 response.append("status", false);
-                response.append("message", "file already exists with matching content!");
+                response.append("message", "there was a problem modifying the file!");
                 return response;
             }
 
-        }
-        else{
+        } else {
             response.append("status", false);
             response.append("message", "Unsafe path given!");
             return response;
@@ -656,7 +674,7 @@ public class PeerUDPLogic extends Thread {
                 }
                 try {
                     tryTimes += 1;
-                    datagramSocket.setSoTimeout(timeout*1000);
+                    datagramSocket.setSoTimeout(timeout * 1000);
                     datagramSocket.receive(receivePacket);
                     if (receivePacket.getAddress().equals(remoteHost)) {
                         receivedResponse = true;
