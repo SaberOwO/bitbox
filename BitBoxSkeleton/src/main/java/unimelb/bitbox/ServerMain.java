@@ -201,6 +201,7 @@ public class ServerMain implements FileSystemObserver {
     }
 
     public void sendUDP(String message, HashMap<DatagramSocket,ArrayList<HostPort>> peersMap) {
+
         for (DatagramSocket datagramSocket:peersMap.keySet()) {
             ArrayList<HostPort> peerList= peersMap.get(datagramSocket);
             for(HostPort peer:peerList) {
