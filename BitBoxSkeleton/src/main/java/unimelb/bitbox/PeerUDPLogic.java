@@ -272,6 +272,9 @@ public class PeerUDPLogic extends Thread {
                 HostPort remoteHostPort = new HostPort(receivedPacket.getAddress().getHostName(), receivedPacket.getPort());
                 sendRequest(datagramSocket, constructFileByteRequest(message, file_bytes_startPosition + content_length, blockSize), remoteHostPort);
             }
+            else{
+                fileSystemManager.scanDirectoryTree(file_bytes_pathName);
+            }
         } catch (IOException | NoSuchAlgorithmException e) {
             System.out.println(e);
         }
@@ -366,21 +369,23 @@ public class PeerUDPLogic extends Thread {
         String pathName = message.getString("pathName");
         Document descriptor = constructFileDescriptor(message);
         response.append("pathName", pathName);
+
         boolean flag = fileSystemManager.fileNameExists(pathName);
-        if (flag == false) {
+        if (!flag) {
             response.append("message", "path name does not exist");
             response.append("status", false);
             sendNormalResponse(datagramSocket, receivedPacket, response);
         }
+
         flag = fileSystemManager.isSafePathName(pathName);
-        if (flag == false) {
+        if (!flag) {
             response.append("message", "unsafe path name given");
             response.append("status", false);
             sendNormalResponse(datagramSocket, receivedPacket, response);
         }
-        flag = fileSystemManager.deleteFile(pathName, descriptor.getLong("lastModified"),
-                descriptor.getString("md5"));
-        if (flag == false) {
+
+        flag = fileSystemManager.deleteFile(pathName, descriptor.getLong("lastModified"), descriptor.getString("md5"));
+        if (!flag) {
             response.append("message", "there was a problem deleting the file");
             response.append("status", false);
             sendNormalResponse(datagramSocket, receivedPacket, response);
@@ -466,6 +471,7 @@ public class PeerUDPLogic extends Thread {
 
     private Document constructFileModifyResponse(Document message) throws IOException, NoSuchAlgorithmException {
         Document response = new Document();
+
         String file_pathName = (String) message.get("pathName");
         Document file_create_fileDescriptor = constructFileDescriptor(message);
         String file_md5 = (String) file_create_fileDescriptor.get("md5");

@@ -810,7 +810,7 @@ public class FileSystemManager extends Thread {
 		return checksum;
 	}
 
-	private ArrayList<FileSystemEvent> scanDirectoryTree(String name) throws IOException, NoSuchAlgorithmException {
+	public ArrayList<FileSystemEvent> scanDirectoryTree(String name) throws IOException, NoSuchAlgorithmException {
 		ArrayList<FileSystemEvent> pathEvents = new ArrayList<FileSystemEvent>();
 		if(name.endsWith(loadingSuffix)) return pathEvents;
 		File file = new File(name);
