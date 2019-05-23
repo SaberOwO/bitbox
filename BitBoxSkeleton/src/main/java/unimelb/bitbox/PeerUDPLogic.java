@@ -53,8 +53,10 @@ public class PeerUDPLogic extends Thread {
             DatagramPacket receivedPacket = new DatagramPacket(data, data.length);
             try {
                 datagramSocket.receive(receivedPacket);
-                handleLogic(datagramSocket, receivedPacket);
-                //   syncTimer();
+                if(!receivedPacket.getAddress().equals(InetAddress.getByName(localIp))) {
+                    handleLogic(datagramSocket, receivedPacket);
+                    //   syncTimer();
+                }
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -410,7 +412,7 @@ public class PeerUDPLogic extends Thread {
                     datagramSocket.receive(receivePacket);
                     if (receivePacket.getAddress().equals(remoteHost)) {
                         receivedResponse = true;
-                        handleLogic(datagramSocket, datagramPacket);
+                        handleLogic(datagramSocket, receivePacket);
                         datagramSocket.setSoTimeout(0);
                     }
                 } catch (IOException e) {
