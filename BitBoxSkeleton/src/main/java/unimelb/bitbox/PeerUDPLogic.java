@@ -401,6 +401,8 @@ public class PeerUDPLogic extends Thread {
             Document FILE_MODIFY_RESPONSE = constructFileModifyResponse(message);
             sendNormalResponse(datagramSocket, receivedPacket, FILE_MODIFY_RESPONSE);
 
+            System.out.println(FILE_MODIFY_RESPONSE.toJson());
+
             if ((boolean) FILE_MODIFY_RESPONSE.get("status")) {
                 HostPort remoteHostPort = new HostPort(receivedPacket.getAddress().getHostName(), receivedPacket.getPort());
                 Document FIRST_FILE_BYTE_REQUEST = constructFileByteRequest(message, 0, blockSize);
@@ -482,46 +484,18 @@ public class PeerUDPLogic extends Thread {
         response.append("pathName", file_pathName);
 
         boolean SF_flag = fileSystemManager.isSafePathName(file_pathName);
-        boolean FN_flag = fileSystemManager.fileNameExists(file_pathName);
-        boolean FC_flag = fileSystemManager.fileNameExists(file_pathName, file_md5);
+//        boolean FN_flag = fileSystemManager.fileNameExists(file_pathName);
+//        boolean FC_flag = fileSystemManager.fileNameExists(file_pathName, file_md5);
 
-//        if (SF_flag && !FN_flag){
-//            if (!FC_flag){
-//                boolean File_modify_loder_flag = false;
-//
-//                File_modify_loder_flag = fileSystemManager.modifyFileLoader(file_pathName, file_md5, file_create_lastModified);
-//
-//                if (File_modify_loder_flag){
-//                    response.append("status", true);
-//                    response.append("message", "File create loader ready!");
-//                    return response;
-//                }
-//                else{
-//                    response.append("status", false);
-//                    response.append("message", "there was a problem modifying the file!");
-//                    return response;
-//                }
-//            }
-//            else{
-//                response.append("status", false);
-//                response.append("message", "file already exists with matching content!");
-//                return response;
-//            }
-//
-//        }
-//        else{
-//            response.append("status", false);
-//            response.append("message", "Unsafe path given!");
-//            return response;
-//        }
+
         if (SF_flag) {
-            boolean File_modify_loder_flag = false;
+            boolean File_modify_loder_flag;
 
             File_modify_loder_flag = fileSystemManager.modifyFileLoader(file_pathName, file_md5, file_create_lastModified);
 
             if (File_modify_loder_flag) {
                 response.append("status", true);
-                response.append("message", "File create loader ready!");
+                response.append("message", "File modify loader ready!");
                 return response;
             } else {
                 response.append("status", false);
