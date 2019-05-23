@@ -81,12 +81,12 @@ public class PeerUDPLogic extends Thread {
             log.info("Received Message: " + message.toJson());
 
 
-            if (message.getString("command").equals("HANDSHAKE_REQUEST") || message.getString("command").equals("HANDSHAKE_RESPONSE")){
-                if(message.getString("pathName").equals(".DS_Store")){
-                    System.out.println("Filtering DS_STORE!");
-                    return;
-                }
-            }
+//            if (message.getString("command").equals("HANDSHAKE_REQUEST") || message.getString("command").equals("HANDSHAKE_RESPONSE")){
+//                if(message.getString("pathName").equals(".DS_Store")){
+//                    System.out.println("Filtering DS_STORE!");
+//                    return;
+//                }
+//            }
 
 
             switch (message.getString("command")) {
@@ -651,7 +651,7 @@ public class PeerUDPLogic extends Thread {
             DatagramPacket receivePacket = new DatagramPacket(new byte[packageSize], packageSize);
             boolean receivedResponse = false;
             int tryTimes = 0;
-            while (!receivedResponse && tryTimes < 3) {
+            while (!receivedResponse && tryTimes < 5) {
                 try {
                     datagramSocket.send(datagramPacket);
                 } catch (IOException e) {
