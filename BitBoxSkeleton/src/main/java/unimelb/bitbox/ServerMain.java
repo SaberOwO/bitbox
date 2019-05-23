@@ -85,7 +85,7 @@ public class ServerMain implements FileSystemObserver {
                         sendIt(constructCreateFileJson(fileSystemEvent));
                         log.info("FILE_CREATE message sent!");
                     } else {
-                        sendUDP(constructCreateFileJson(fileSystemEvent), peersMap);
+                        sendUDP(constructCreateFileJson(fileSystemEvent),peersMap);
                         log.info("FILE_CREATE message sent!");
                     }
                     break;
@@ -104,7 +104,7 @@ public class ServerMain implements FileSystemObserver {
                         sendIt(constructModifyFileJson(fileSystemEvent));
                         log.info("FILE_MODIFY message sent!");
                     } else {
-                        sendUDP(constructModifyFileJson(fileSystemEvent), peersMap);
+                        sendUDP(constructModifyFileJson(fileSystemEvent),peersMap);
                         log.info("FILE_MODIFY message sent!");
                     }
                     break;
@@ -122,7 +122,7 @@ public class ServerMain implements FileSystemObserver {
                         sendIt(constructDeleteDirectory(fileSystemEvent));
                         log.info("DIRECTORY_DELETE message sent!");
                     } else {
-                        sendUDP(constructDeleteDirectory(fileSystemEvent), peersMap);
+                        sendUDP(constructDeleteDirectory(fileSystemEvent),peersMap);
                         log.info("DIRECTORY_DELETE message sent!");
                     }
                     break;
@@ -236,10 +236,13 @@ public class ServerMain implements FileSystemObserver {
 
                     boolean receivedResponse = false;
                     int tryTimes = 0;
-
-                    while (!receivedResponse && tryTimes < 5) {
+                    while (!receivedResponse && tryTimes < 3) {
                         try {
                             datagramSocket.send(datagramPacket);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        try {
                             tryTimes += 1;
                             datagramSocket.setSoTimeout(timeout * 1000);
                             datagramSocket.receive(receivePacket);
