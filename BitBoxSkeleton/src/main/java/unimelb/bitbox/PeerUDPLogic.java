@@ -274,6 +274,7 @@ public class PeerUDPLogic extends Thread {
             }
             else{
                 fileSystemManager.scanDirectoryTree(file_bytes_pathName);
+                log.info("FILE READ SUCCESSFUL!");
             }
         } catch (IOException | NoSuchAlgorithmException e) {
             System.out.println(e);
