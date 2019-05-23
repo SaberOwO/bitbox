@@ -100,36 +100,30 @@ public class PeerUDPLogic extends Thread {
 
                 case "FILE_CREATE_REQUEST":
                     log.info("FILE_CREATE_REQUEST");
-                    log.info(message.toJson());
                     handleFileCreateRequest(datagramSocket, message, receivedPacket);
                     break;
 
                 case "FILE_CREATE_RESPONSE":
                     log.info("FILE_CREATE_RESPONSE");
-                    log.info(message.toJson());
                     break;
 
                 case "FILE_MODIFY_REQUEST":
                     log.info("FILE_MODIFY_REQUEST");
-                    log.info(message.toJson());
                     handleFileModifyRequest(datagramSocket, message, receivedPacket);
                     break;
 
                 case "FILE_MODIFY_RESPONSE":
                     log.info("FILE_MODIFY_RESPONSE");
-                    log.info(message.toJson());
                     // Nothing needs to handle
                     break;
 
                 case "FILE_BYTES_REQUEST":
                     log.info("FILE_BYTES_REQUEST");
-                    log.info(message.toJson());
                     handleFileBytesRequest(datagramSocket, receivedPacket, message);
                     break;
 
                 case "FILE_BYTES_RESPONSE":
                     log.info("FILE_BYTES_RESPONSE");
-                    log.info(message.toJson());
                     handleFileBytesResponse(datagramSocket, receivedPacket, message);
                     break;
 
@@ -591,6 +585,8 @@ public class PeerUDPLogic extends Thread {
         }
         DatagramPacket sendPacket = new DatagramPacket(message, message.length, datagramPacket.getAddress(), datagramPacket.getPort());
         try {
+            log.info("Response send to " + datagramPacket.getAddress() + ":" + datagramPacket.getPort());
+            log.info("Response Content: " + info.toJson());
             datagramSocket.send(sendPacket);
         } catch (IOException e) {
             e.printStackTrace();
@@ -631,7 +627,9 @@ public class PeerUDPLogic extends Thread {
         }
         try {
             InetAddress remoteHost = InetAddress.getByName(hostPort.host);
-            log.info("Message send to" + remoteHost.toString() + ":" + hostPort.port);
+            log.info("Request send to " + remoteHost.toString() + ":" + hostPort.port);
+            log.info("Request Content: " + info.toJson());
+
             DatagramPacket datagramPacket = new DatagramPacket(message, message.length, remoteHost, hostPort.port);
             DatagramPacket receivePacket = new DatagramPacket(new byte[8192], 8192);
             boolean receivedResponse = false;

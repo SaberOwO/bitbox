@@ -211,6 +211,8 @@ public class ServerMain implements FileSystemObserver {
                 try {
                     InetAddress remoteHost = InetAddress.getByName(peer.host);
                     log.info("udpPacket send to " + remoteHost.toString() + ":" + peer.port);
+                    log.info("Packet content: " + message);
+
                     DatagramPacket datagramPacket = new DatagramPacket(sendMessage, sendMessage.length, remoteHost, peer.port);
                     DatagramPacket receivePacket = new DatagramPacket(new byte[8192], 8192);
                     boolean receivedResponse = false;
