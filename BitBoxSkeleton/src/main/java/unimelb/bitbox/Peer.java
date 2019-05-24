@@ -20,7 +20,6 @@ import unimelb.bitbox.util.HostPort;
 import javax.net.ServerSocketFactory;
 import java.net.DatagramSocket;
 
-<<<<<<<HEAD
 
 public class Peer {
     private static Logger log = Logger.getLogger(Peer.class.getName());
@@ -45,31 +44,21 @@ public class Peer {
 
         ExecutorService tpool = Executors.newFixedThreadPool(maxConnection * 3);
 
-        String[] keysInfo = Configuration.getConfigurationValue("authorized_keys").split(",");
-        HashMap<String, String> keymap = new HashMap<>();
-        for (String pk : keysInfo) {
-            String[] items = pk.split(" ");
-            keymap.put(items[2], items[1]);
-        }
-        runClientServer rCS = new runClientServer(new HostPort(localIp, localPort),
-                socketWriter, socketReader, peerList, keymap, tpool, serverMain.fileSystemManager, serverMain, maxConnection, false, ClientPort);
-        rCS.start();
+//        String[] keysInfo = Configuration.getConfigurationValue("authorized_keys").split(",");
+//        HashMap<String, String> keymap = new HashMap<>();
+//        for (String pk : keysInfo) {
+//            String[] items = pk.split(" ");
+//            keymap.put(items[2], items[1]);
+//        }
+//        runClientServer rCS = new runClientServer(new HostPort(localIp, localPort),
+//                socketWriter, socketReader, peerList, keymap, tpool, serverMain.fileSystemManager, serverMain, maxConnection, false, ClientPort);
+//        rCS.start();
 
 
         if (mode.equals("tcp")) {
             ServerMain serverMain = new ServerMain(socketWriter);
 
-
-            log.info("First Peer In The CLUSTER");
-            runServer(tpool, serverMain);
-        } else {
-            boolean flag = false;
-            for (String peerInfo : peersInfo) {
-                HostPort hostPort = new HostPort(peerInfo);
-                runClient(hostPort, tpool, serverMain);
-                flag = true;
-            }
-            if (flag == false) {git
+            if (Configuration.getConfigurationValue("peers").equals("")) {
                 log.info("First Peer In The CLUSTER");
                 runServer(tpool, serverMain);
             } else {
@@ -89,16 +78,16 @@ public class Peer {
                     runServer(tpool, serverMain);
                 }
             }
-        } else{
+        } else {
             if (Configuration.getConfigurationValue("peers").equals("")) {
                 log.info("First Peer In The CLUSTER");
                 runUDPServer(tpool);
             } else {
                 boolean flag = false;
-                ServerMain serverMain = new ServerMain(peersMap, "udp");
+                ServerMain serverMain =new ServerMain(peersMap,"udp");
                 for (String peerInfo : peersInfo) {
                     HostPort hostPort = new HostPort(peerInfo);
-                    runUDPClient(hostPort, tpool, serverMain);
+                    runUDPClient(hostPort, tpool,serverMain);
                     flag = true;
                 }
                 //when all peers in peerList cannot reach
