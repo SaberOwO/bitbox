@@ -236,6 +236,7 @@ public class ServerMain implements FileSystemObserver {
 
                     boolean receivedResponse = false;
                     int tryTimes = 0;
+                    
                     while (!receivedResponse && tryTimes < 3) {
                         try {
                             datagramSocket.send(datagramPacket);
