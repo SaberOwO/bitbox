@@ -10,6 +10,9 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.logging.Logger;
 
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 import unimelb.bitbox.util.*;
 import unimelb.bitbox.util.FileSystemManager.FileSystemEvent;
 
@@ -25,13 +28,12 @@ public class ServerMain implements FileSystemObserver {
     public HashMap<DatagramSocket, ArrayList<HostPort>> peersMap;
 
 
-
     public ServerMain(HashMap<Socket, BufferedWriter> socketWriter) throws NumberFormatException, IOException, NoSuchAlgorithmException {
         fileSystemManager = new FileSystemManager(Configuration.getConfigurationValue("path"), this);
         this.socketWriter = socketWriter;
     }
 
-    public ServerMain(HashMap<DatagramSocket, ArrayList<HostPort>> peersMap,String mode) throws IOException, NoSuchAlgorithmException {
+    public ServerMain(HashMap<DatagramSocket, ArrayList<HostPort>> peersMap, String mode) throws IOException, NoSuchAlgorithmException {
         fileSystemManager = new FileSystemManager(Configuration.getConfigurationValue("path"), this);
         this.peersMap = peersMap;
         this.mode = mode;
@@ -200,10 +202,24 @@ public class ServerMain implements FileSystemObserver {
         return fileDescriptor;
     }
 
-    public void sendUDP(String message, HashMap<DatagramSocket,ArrayList<HostPort>> peersMap) {
-        for (DatagramSocket datagramSocket:peersMap.keySet()) {
-            ArrayList<HostPort> peerList= peersMap.get(datagramSocket);
-            for(HostPort peer:peerList) {
+    public void sendUDP(String message, HashMap<DatagramSocket, ArrayList<HostPort>> peersMap) {
+        // .DS_Store filter
+
+        try {
+            JSONParser parser = new JSONParser();
+            JSONObject message_json = (JSONObject) parser.parse(message);
+            System.out.println(message_json.get("pathName"));
+            if(message_json.get("pathName").equals(".DS_Store")){
+                return;
+            }
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+
+
+        for (DatagramSocket datagramSocket : peersMap.keySet()) {
+            ArrayList<HostPort> peerList = peersMap.get(datagramSocket);
+            for (HostPort peer : peerList) {
                 byte[] sendMessage = new byte[packageSize];
                 try {
                     sendMessage = message.getBytes("UTF-8");
@@ -217,6 +233,7 @@ public class ServerMain implements FileSystemObserver {
 
                     DatagramPacket datagramPacket = new DatagramPacket(sendMessage, sendMessage.length, remoteHost, peer.port);
                     DatagramPacket receivePacket = new DatagramPacket(new byte[packageSize], packageSize);
+
                     boolean receivedResponse = false;
                     int tryTimes = 0;
                     while (!receivedResponse && tryTimes < 3) {
@@ -227,18 +244,25 @@ public class ServerMain implements FileSystemObserver {
                         }
                         try {
                             tryTimes += 1;
-                            datagramSocket.setSoTimeout(timeout*1000);
+                            datagramSocket.setSoTimeout(timeout * 1000);
                             datagramSocket.receive(receivePacket);
                             if (receivePacket.getAddress().equals(remoteHost)) {
                                 receivedResponse = true;
-                                log.info("the message has been received");
+                                System.out.println("###########################");
+                                System.out.println("Message Content: " + message);
+                                System.out.println("(OK) The message has got response in time.");
+                                System.out.println("###########################");
                                 datagramSocket.setSoTimeout(0);
                             }
                         } catch (IOException e) {
-                            e.printStackTrace();
+                            System.out.println("###########################");
+                            System.out.println("Message Content: " + message);
+                            System.out.println("Retry time: " + tryTimes);
+                            System.out.println("(ERROR) The message does not get response in time.");
+                            System.out.println("###########################");
                         }
                     }
-                    if (receivedResponse == false) {
+                    if (!receivedResponse) {
                         try {
                             datagramSocket.setSoTimeout(0);
                         } catch (SocketException e) {
