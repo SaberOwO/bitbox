@@ -68,7 +68,6 @@ public class PeerUDPLogic extends Thread {
                 // e.printStackTrace();
             }
         }
-
     }
 
 
@@ -77,7 +76,6 @@ public class PeerUDPLogic extends Thread {
             String receivedData = new String(receivedPacket.getData(), 0, receivedPacket.getLength(), "UTF-8");
             Document message = Document.parse(receivedData);
             log.info("Received Message: " + message.toJson());
-
             switch (message.getString("command")) {
                 case "INVALID_PROTOCOL":
                     log.info("INVALID_PROTOCOL has been received");
@@ -661,7 +659,6 @@ public class PeerUDPLogic extends Thread {
                         receivedResponse = true;
                         datagramSocket.setSoTimeout(0);
                         handleLogic(datagramSocket, receivePacket);
-
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
