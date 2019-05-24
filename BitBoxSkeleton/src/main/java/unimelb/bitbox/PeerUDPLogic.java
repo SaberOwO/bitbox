@@ -21,14 +21,12 @@ import java.util.logging.Logger;
 public class PeerUDPLogic extends Thread {
     private static Logger log = Logger.getLogger(PeerUDPLogic.class.getName());
     private DatagramSocket datagramSocket;
-    private DatagramPacket datagramPacket;
     private FileSystemManager fileSystemManager;
     private ServerMain serverMain;
     private boolean isFirst;
     private ArrayList<HostPort> peerList;
     private int maxConnection;
     private HostPort hostPort;
-    private LinkedList<Document> messageList;
     private static String localIp = Configuration.getConfigurationValue("advertisedName");
     private static int localPort = Integer.valueOf(Configuration.getConfigurationValue("port"));
     private static int blockSize = Integer.valueOf(Configuration.getConfigurationValue("blockSize"));
@@ -59,6 +57,8 @@ public class PeerUDPLogic extends Thread {
             byte[] data = new byte[packageSize];
             DatagramPacket receivedPacket = new DatagramPacket(data, data.length);
             try {
+//                // Only for test
+                datagramSocket.setSoTimeout(100);
                 datagramSocket.receive(receivedPacket);
                 if (!receivedPacket.getAddress().equals(InetAddress.getByName(localIp))) {
                     handleLogic(datagramSocket, receivedPacket);

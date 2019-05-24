@@ -481,9 +481,14 @@ public class PeerLogic extends Thread {
 
         boolean flag_of_write = fileSystemManager.writeFile(file_bytes_pathName, decode_content, file_bytes_startPosition);
         boolean flag_of_complete = fileSystemManager.checkWriteComplete(file_bytes_pathName);
-
+        if (flag_of_write){
+            log.info("File write success");
+        }
         if (!flag_of_complete) {
             sendInfo(constructFileByteRequest(message, file_bytes_startPosition + content_length, blockSize), out);
+        }
+        else{
+            log.info("File transmission complete");
         }
     }
 

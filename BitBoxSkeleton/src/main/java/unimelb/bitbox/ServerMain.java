@@ -43,38 +43,6 @@ public class ServerMain implements FileSystemObserver {
         this.tempPeerList = peerList;
     }
 
-//    public void processFileSystemEvent(FileSystemEvent fileSystemEvent, ArrayList<HostPort> peerList,
-//                                       DatagramSocket datagramSocket) {
-//        try {
-//            switch (fileSystemEvent.event) {
-//                case FILE_CREATE:
-//                    sendUDP(constructCreateFileJson(fileSystemEvent), peerList, datagramSocket);
-//                    log.info("FILE_CREATE message sent!");
-//                    break;
-//
-//                case FILE_DELETE:
-//                    sendUDP(constructDeleteFileJson(fileSystemEvent), peerList, datagramSocket);
-//                    log.info("FILE_DELETE message sent!");
-//                    break;
-//                case FILE_MODIFY:
-//                    sendUDP(constructModifyFileJson(fileSystemEvent), peerList, datagramSocket);
-//                    log.info("FILE_MODIFY message sent!");
-//                    break;
-//                case DIRECTORY_CREATE:
-//                    sendUDP(constructCreateDirectory(fileSystemEvent), peerList, datagramSocket);
-//                    log.info("DIRECTORY_CREATE message sent!");
-//                    break;
-//                case DIRECTORY_DELETE:
-//                    sendUDP(constructDeleteDirectory(fileSystemEvent), peerList, datagramSocket);
-//                    log.info("DIRECTORY_DELETE message sent!");
-//                    break;
-//                default:
-//                    log.warning("Wrong request");
-//            }
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//    }
 
     // By analyze the information of fileSystemEvent to construct and send the request
     public void processFileSystemEvent(FileSystemEvent fileSystemEvent) {
@@ -236,6 +204,7 @@ public class ServerMain implements FileSystemObserver {
 
                     boolean receivedResponse = false;
                     int tryTimes = 0;
+                    
                     while (!receivedResponse && tryTimes < 3) {
                         try {
                             datagramSocket.send(datagramPacket);
