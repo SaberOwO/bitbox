@@ -32,7 +32,6 @@ public class Peer {
     private static HashMap<Socket, BufferedWriter> socketWriter = new HashMap<>();
     private static HashMap<Socket, BufferedReader> socketReader = new HashMap<>();
     private static HashMap<DatagramSocket, ArrayList<HostPort>> peersMap = new HashMap<>();
-    private static ArrayList<HostPort> tempPeerList = new ArrayList<>();
 
     public static void main(String[] args) throws IOException, NumberFormatException, NoSuchAlgorithmException {
         System.setProperty("java.util.logging.SimpleFormatter.format",
@@ -57,6 +56,16 @@ public class Peer {
 
         if (mode.equals("tcp")) {
             ServerMain serverMain = new ServerMain(socketWriter);
+
+            String[] keysInfo = Configuration.getConfigurationValue("authorized_keys").split(",");
+            HashMap<String, String> keymap = new HashMap<>();
+            for (String pk : keysInfo) {
+                String[] items = pk.split(" ");
+                keymap.put(items[2], items[1]);
+            }
+            runClientServer rCS = new runClientServer(new HostPort(localIp, localPort),
+                    socketWriter, socketReader, peerList, keymap, tpool, serverMain.fileSystemManager, serverMain, maxConnection, false, ClientPort);
+            rCS.start();
 
             if (Configuration.getConfigurationValue("peers").equals("")) {
                 log.info("First Peer In The CLUSTER");
@@ -98,6 +107,7 @@ public class Peer {
             }
         }
     }
+
 
     private static void runClient(HostPort hostPort, ExecutorService tpool, ServerMain sm) throws IOException {
         Socket client = new Socket(hostPort.host, hostPort.port);

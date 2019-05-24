@@ -98,6 +98,8 @@ public class ClientServerLogic extends Thread {
                 switch (decryptDoc.getString("command")) {
                     case "LIST_PEERS_REQUEST":
                         log.info("LIST_PEERS_REQUEST");
+                        System.out.println("**********");
+                        System.out.println(peerList);
                         log.info(decryptDoc.toJson());
                         handleListPeers_Response(decryptDoc, out);
                         break;
