@@ -227,12 +227,14 @@ public class ClientServerLogic extends Thread {
 
     private PublicKey getPublicKey(String identity)throws Exception{
         byte[] load = Base64.getDecoder().decode(identity.getBytes());
-        byte[] exponentByt = subByte(load,15,3);
-        byte[] moduleLengthByt = subByte(load,18,4);
+        byte[] exponentLengthByt = subByte(load,11,4);
+        int expoentLengthInt = Integer.parseInt(bytes2HexString(exponentLengthByt),16);
+        byte[] exponentByt = subByte(load,15,expoentLengthInt);
+        byte[] moduleLengthByt = subByte(load,15+expoentLengthInt,4);
 
         int moduleLengthInt = Integer.parseInt(bytes2HexString(moduleLengthByt),16);
         BigInteger exponent = new BigInteger(bytes2HexString(exponentByt), 16);
-        byte[] moduleByt = subByte(load,22,moduleLengthInt);
+        byte[] moduleByt = subByte(load,15+expoentLengthInt+4,moduleLengthInt);
         BigInteger module = new BigInteger(bytes2HexString(moduleByt),16);
 
         KeyFactory keyFactory = KeyFactory.getInstance("RSA");
