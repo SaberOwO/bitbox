@@ -29,7 +29,6 @@ import static java.nio.charset.StandardCharsets.ISO_8859_1;
 
 public class ClientServerLogic extends Thread {
     private ArrayList<HostPort> peerList;
-    private HashMap<DatagramSocket, ArrayList<HostPort>> peersMap;
     private Socket socket;
     private HostPort myPort;
     private HashMap<Socket, BufferedWriter> socketWriter;
@@ -45,13 +44,12 @@ public class ClientServerLogic extends Thread {
     ClientServerLogic(Socket socket, HostPort myPort,
                       HashMap<Socket, BufferedWriter> socketWriter,
                       HashMap<Socket, BufferedReader> socketReader,
-                      ArrayList<HostPort> peerList, HashMap<DatagramSocket, ArrayList<HostPort>> peersMap,
+                      ArrayList<HostPort> peerList,
                       HashMap<String, String> keymap, ExecutorService tpool,
                       FileSystemManager fileSystemManager, ServerMain serverMain, int maxConnection, boolean isFirst){
         this.socket = socket;
         this.myPort = myPort;
         this.peerList = peerList;
-        this.peersMap = peersMap;
         this.socketReader = socketReader;
         this.socketWriter = socketWriter;
         this.keymap = keymap;
@@ -166,8 +164,8 @@ public class ClientServerLogic extends Thread {
         }
         else{
             ArrayList<Document> peers = new ArrayList<>();
-            for(DatagramSocket ds : peersMap.keySet()){
-                ArrayList<HostPort> temp = peersMap.get(ds);
+            for(DatagramSocket ds : serverMain.peersMap.keySet()){
+                ArrayList<HostPort> temp = serverMain.peersMap.get(ds);
                 for (HostPort peer : temp){
                     peers.add(peer.toDoc());
                 }
@@ -202,8 +200,8 @@ public class ClientServerLogic extends Thread {
         else{
             System.out.println("UDP mode connection");
             boolean exist = false;
-            for(DatagramSocket ds : peersMap.keySet()){
-                ArrayList<HostPort> temp = peersMap.get(ds);
+            for(DatagramSocket ds : serverMain.peersMap.keySet()){
+                ArrayList<HostPort> temp = serverMain.peersMap.get(ds);
                 if (temp.contains(hp)){
                     exist = true;
                 }
@@ -218,7 +216,7 @@ public class ClientServerLogic extends Thread {
             DatagramSocket newsocket = new DatagramSocket();
             ArrayList<HostPort> newMemorizedList = new ArrayList<>();
             newMemorizedList.add(hp);
-            peersMap.put(newsocket, newMemorizedList);
+            serverMain.peersMap.put(newsocket, newMemorizedList);
             PeerUDPLogic newpeer = new PeerUDPLogic(newsocket, serverMain.fileSystemManager,
                     serverMain, true, peerList, maxConnection, hp);
             newpeer.start();
@@ -226,10 +224,10 @@ public class ClientServerLogic extends Thread {
 
         sleep(2000);
        boolean udpconnect = false;
-        for(DatagramSocket ds : peersMap.keySet()){
+        for(DatagramSocket ds : serverMain.peersMap.keySet()){
 //            System.out.println(ds.getPort());
 //            System.out.println((int)port);
-            ArrayList<HostPort> temp = peersMap.get(ds);
+            ArrayList<HostPort> temp = serverMain.peersMap.get(ds);
             if (temp.contains(hp)){
                     udpconnect = true;
             }
@@ -267,8 +265,8 @@ public class ClientServerLogic extends Thread {
         }
         else{
             boolean exist = false;
-            for(DatagramSocket ds : peersMap.keySet()){
-                ArrayList<HostPort> temp = peersMap.get(ds);
+            for(DatagramSocket ds : serverMain.peersMap.keySet()){
+                ArrayList<HostPort> temp = serverMain.peersMap.get(ds);
                 if (temp.contains(hp)){
                     exist = true;
                     temp.remove(hp);

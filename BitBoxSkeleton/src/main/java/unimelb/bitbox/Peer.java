@@ -53,7 +53,7 @@ public class Peer {
             ServerMain serverMain = new ServerMain(socketWriter);
 
             runClientServer rCS = new runClientServer(new HostPort(localIp, localPort),
-                    socketWriter, socketReader, peerList, peersMap, keymap, tpool, serverMain.fileSystemManager, serverMain, maxConnection, false, ClientPort);
+                    socketWriter, socketReader, peerList,keymap, tpool, serverMain.fileSystemManager, serverMain, maxConnection, false, ClientPort);
             rCS.start();
 
             if (Configuration.getConfigurationValue("peers").equals("")) {
@@ -81,14 +81,14 @@ public class Peer {
                 log.info("First Peer In The CLUSTER");
                 ServerMain serverMain = new ServerMain(peersMap, "udp");
                 runClientServer rCS = new runClientServer(new HostPort(localIp, localPort),
-                        socketWriter, socketReader, peerList, peersMap, keymap, tpool, serverMain.fileSystemManager, serverMain, maxConnection, false, ClientPort);
+                        socketWriter, socketReader, peerList,keymap, tpool, serverMain.fileSystemManager, serverMain, maxConnection, false, ClientPort);
                 rCS.start();
                 runUDPServer(serverMain, tpool);
             } else {
                 boolean flag = false;
                 ServerMain serverMain = new ServerMain(peersMap, "udp");
                 runClientServer rCS = new runClientServer(new HostPort(localIp, localPort),
-                        socketWriter, socketReader, peerList, peersMap, keymap, tpool, serverMain.fileSystemManager, serverMain, maxConnection, false, ClientPort);
+                        socketWriter, socketReader, peerList,keymap, tpool, serverMain.fileSystemManager, serverMain, maxConnection, false, ClientPort);
                 rCS.start();
                 for (String peerInfo : peersInfo) {
                     HostPort hostPort = new HostPort(peerInfo);
