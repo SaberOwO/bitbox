@@ -18,6 +18,7 @@ import java.util.Base64;
 import java.util.logging.Logger;
 
 public class Client {
+
     private static Logger log = Logger.getLogger(Client.class.getName());
     private static final int MAX_DECRYPT_BLOCK = 512;
     public static void main(String[] args) {
@@ -26,6 +27,7 @@ public class Client {
         //Parser provided by args4j
         CmdLineParser parser = new CmdLineParser(argsBean);
         try {
+
             //Parse the arguments
             parser.parseArgument(args);
             //After parsing, the fields in argsBean have been updated with the given
@@ -34,7 +36,7 @@ public class Client {
             HostPort serverPort = new HostPort(argsBean.getServerPort());
             // get the private key
             try {
-                PrivateKey myPrivateKey = new PrivateKeyReader("Resources/private_key.pem").generatePrivateKey();
+                PrivateKey myPrivateKey = new PrivateKeyReader("D:\\Study\\S2\\COMP90015 Distributed Systems\\BITBOX\\bitbox\\BitBoxSkeleton\\src\\main\\resources\\private_key.pem").generatePrivateKey();
                 runClient(serverPort, request, myPrivateKey, argsBean);
             } catch (IOException e) {
                 log.warning("fail to get the private key");

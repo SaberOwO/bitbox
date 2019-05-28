@@ -42,29 +42,18 @@ public class Peer {
         String[] peersInfo = Configuration.getConfigurationValue("peers").split(",");
 
         ExecutorService tpool = Executors.newFixedThreadPool(maxConnection * 3);
-
-//        String[] keysInfo = Configuration.getConfigurationValue("authorized_keys").split(",");
-//        HashMap<String, String> keymap = new HashMap<>();
-//        for (String pk : keysInfo) {
-//            String[] items = pk.split(" ");
-//            keymap.put(items[2], items[1]);
-//        }
-//        runClientServer rCS = new runClientServer(new HostPort(localIp, localPort),
-//                socketWriter, socketReader, peerList, keymap, tpool, serverMain.fileSystemManager, serverMain, maxConnection, false, ClientPort);
-//        rCS.start();
-
+        String[] keysInfo = Configuration.getConfigurationValue("authorized_keys").split(",");
+        HashMap<String, String> keymap = new HashMap<>();
+        for (String pk : keysInfo) {
+            String[] items = pk.split(" ");
+            keymap.put(items[2], items[1]);
+        }
 
         if (mode.equals("tcp")) {
             ServerMain serverMain = new ServerMain(socketWriter);
 
-            String[] keysInfo = Configuration.getConfigurationValue("authorized_keys").split(",");
-            HashMap<String, String> keymap = new HashMap<>();
-            for (String pk : keysInfo) {
-                String[] items = pk.split(" ");
-                keymap.put(items[2], items[1]);
-            }
             runClientServer rCS = new runClientServer(new HostPort(localIp, localPort),
-                    socketWriter, socketReader, peerList, keymap, tpool, serverMain.fileSystemManager, serverMain, maxConnection, false, ClientPort);
+                    socketWriter, socketReader, peerList, peersMap, keymap, tpool, serverMain.fileSystemManager, serverMain, maxConnection, false, ClientPort);
             rCS.start();
 
             if (Configuration.getConfigurationValue("peers").equals("")) {
@@ -90,19 +79,26 @@ public class Peer {
         } else {
             if (Configuration.getConfigurationValue("peers").equals("")) {
                 log.info("First Peer In The CLUSTER");
-                runUDPServer(tpool);
+                ServerMain serverMain = new ServerMain(peersMap, "udp");
+                runClientServer rCS = new runClientServer(new HostPort(localIp, localPort),
+                        socketWriter, socketReader, peerList, peersMap, keymap, tpool, serverMain.fileSystemManager, serverMain, maxConnection, false, ClientPort);
+                rCS.start();
+                runUDPServer(serverMain, tpool);
             } else {
                 boolean flag = false;
-                ServerMain serverMain =new ServerMain(peersMap,"udp");
+                ServerMain serverMain = new ServerMain(peersMap, "udp");
+                runClientServer rCS = new runClientServer(new HostPort(localIp, localPort),
+                        socketWriter, socketReader, peerList, peersMap, keymap, tpool, serverMain.fileSystemManager, serverMain, maxConnection, false, ClientPort);
+                rCS.start();
                 for (String peerInfo : peersInfo) {
                     HostPort hostPort = new HostPort(peerInfo);
-                    runUDPClient(hostPort, tpool,serverMain);
+                    runUDPClient(hostPort, tpool, serverMain);
                     flag = true;
                 }
                 //when all peers in peerList cannot reach
                 if (!flag) {
                     log.info("First Peer In The CLUSTER");
-                    runUDPServer(tpool);
+                    runUDPServer(serverMain,tpool);
                 }
             }
         }
@@ -134,10 +130,9 @@ public class Peer {
                 serverMain, true, peerList, maxConnection, hostPort));
     }
 
-    private static void runUDPServer(ExecutorService tpool) throws IOException, NoSuchAlgorithmException {
+    private static void runUDPServer(ServerMain serverMain, ExecutorService tpool) throws IOException, NoSuchAlgorithmException {
         DatagramSocket datagramSocket = new DatagramSocket(localPort);
         log.info("Listening at " + localPort);
-        ServerMain serverMain = new ServerMain(peersMap, "udp");
         tpool.execute(new PeerUDPLogic(datagramSocket, serverMain.fileSystemManager,
                 serverMain, false, peerList, maxConnection, new HostPort(localIp, localPort)));
     }

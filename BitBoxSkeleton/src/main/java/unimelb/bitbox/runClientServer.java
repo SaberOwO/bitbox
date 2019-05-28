@@ -9,6 +9,7 @@ import javax.net.ServerSocketFactory;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.net.DatagramSocket;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -18,6 +19,7 @@ import java.util.logging.Logger;
 
 public class runClientServer extends Thread{
     private ArrayList<HostPort> peerList;
+    private HashMap<DatagramSocket, ArrayList<HostPort>> peersMap = new HashMap<>();
     private Socket socket;
     private HostPort myPort;
     private HashMap<Socket, BufferedWriter> socketWriter;
@@ -34,10 +36,12 @@ public class runClientServer extends Thread{
     runClientServer(HostPort myPort,
                     HashMap<Socket, BufferedWriter> socketWriter,
                     HashMap<Socket, BufferedReader> socketReader,
-                    ArrayList<HostPort> peerList, HashMap<String, String> keymap, ExecutorService tpool,
+                    ArrayList<HostPort> peerList, HashMap<DatagramSocket, ArrayList<HostPort>> peersMap,
+                    HashMap<String, String> keymap, ExecutorService tpool,
                     FileSystemManager fileSystemManager, ServerMain serverMain, int maxConnection, boolean isFirst, int ClientPort){
         this.myPort = myPort;
         this.peerList = peerList;
+        this.peersMap = peersMap;
         this.socketReader = socketReader;
         this.socketWriter = socketWriter;
         this.keymap = keymap;
@@ -68,7 +72,7 @@ public class runClientServer extends Thread{
                 e.printStackTrace();
             }
             ClientServerLogic CSL = new ClientServerLogic(client, myPort,
-                    socketWriter, socketReader, peerList, keymap, tpool, serverMain.fileSystemManager, serverMain, maxConnection, false);
+                    socketWriter, socketReader, peerList, peersMap, keymap, tpool, serverMain.fileSystemManager, serverMain, maxConnection, false);
             CSL.start();
         }
 
