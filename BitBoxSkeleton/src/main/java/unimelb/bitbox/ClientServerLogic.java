@@ -12,6 +12,7 @@ import java.io.*;
 import java.math.BigInteger;
 import java.net.DatagramSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
@@ -77,48 +78,52 @@ public class ClientServerLogic extends Thread {
 
     private void handleLogic(BufferedReader in, BufferedWriter out) throws Exception, IOException, NoSuchAlgorithmException {
         String originalMessage;
-        while ((originalMessage = in.readLine()) != null) {
-//            System.out.println("haha");
-            Document message = Document.parse(originalMessage);
-            if (message.containsKey("command")){
-                log.info("AUTH_REQUEST");
-                log.info(message.toJson());
-                handleAuth_Response(message, out);
-            }
-            else{
-                log.info("PayLoad");
-                Cipher cipher = Cipher.getInstance("AES");
-//                System.out.println(secretKey);
-                cipher.init(Cipher.DECRYPT_MODE, secretKey);
-                String encrypted = (String)message.get("payload");
-
-//                System.out.println( Base64.getEncoder().encodeToString(secretKey.getEncoded()));
-//                System.out.println(encrypted);
-                byte[] aaa = Base64.getDecoder().decode(encrypted);
-//                System.out.println(aaa.length);
-                String secretMessage = new String(cipher.doFinal(Base64.getDecoder().decode(encrypted)));
-                Document decryptDoc = Document.parse(secretMessage);
-                switch (decryptDoc.getString("command")) {
-                    case "LIST_PEERS_REQUEST":
-                        log.info("LIST_PEERS_REQUEST");
-                        System.out.println("**********");
-                        System.out.println(peerList);
-                        log.info(decryptDoc.toJson());
-                        handleListPeers_Response(decryptDoc, out);
-                        break;
-                    case "CONNECT_PEER_REQUEST":
-                        log.info("CONNECT_PEER_REQUEST");
-                        log.info(decryptDoc.toJson());
-                        handleConnectPeer_Response(decryptDoc, out);
-                        break;
-                    case "DISCONNECT_PEER_REQUEST":
-                        log.info("DISCONNECT_PEER_REQUEST");
-                        log.info(decryptDoc.toJson());
-                        handleDisConnectPeer_Response(decryptDoc, out);
-                        break;
+        try {
+            while ((originalMessage = in.readLine()) != null) {
+    //            System.out.println("haha");
+                Document message = Document.parse(originalMessage);
+                if (message.containsKey("command")){
+                    log.info("AUTH_REQUEST");
+                    log.info(message.toJson());
+                    handleAuth_Response(message, out);
                 }
-            }
+                else{
+                    log.info("PayLoad");
+                    Cipher cipher = Cipher.getInstance("AES");
+    //                System.out.println(secretKey);
+                    cipher.init(Cipher.DECRYPT_MODE, secretKey);
+                    String encrypted = (String)message.get("payload");
 
+    //                System.out.println( Base64.getEncoder().encodeToString(secretKey.getEncoded()));
+    //                System.out.println(encrypted);
+                    byte[] aaa = Base64.getDecoder().decode(encrypted);
+    //                System.out.println(aaa.length);
+                    String secretMessage = new String(cipher.doFinal(Base64.getDecoder().decode(encrypted)));
+                    Document decryptDoc = Document.parse(secretMessage);
+                    switch (decryptDoc.getString("command")) {
+                        case "LIST_PEERS_REQUEST":
+                            log.info("LIST_PEERS_REQUEST");
+                            System.out.println("**********");
+                            System.out.println(peerList);
+                            log.info(decryptDoc.toJson());
+                            handleListPeers_Response(decryptDoc, out);
+                            break;
+                        case "CONNECT_PEER_REQUEST":
+                            log.info("CONNECT_PEER_REQUEST");
+                            log.info(decryptDoc.toJson());
+                            handleConnectPeer_Response(decryptDoc, out);
+                            break;
+                        case "DISCONNECT_PEER_REQUEST":
+                            log.info("DISCONNECT_PEER_REQUEST");
+                            log.info(decryptDoc.toJson());
+                            handleDisConnectPeer_Response(decryptDoc, out);
+                            break;
+                    }
+                }
+
+            }
+        } catch (SocketException e) {
+            System.out.println("client command finished");
         }
     }
 

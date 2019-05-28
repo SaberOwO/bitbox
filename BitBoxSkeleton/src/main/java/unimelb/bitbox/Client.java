@@ -36,7 +36,7 @@ public class Client {
             HostPort serverPort = new HostPort(argsBean.getServerPort());
             // get the private key
             try {
-                PrivateKey myPrivateKey = new PrivateKeyReader("D:\\Study\\S2\\COMP90015 Distributed Systems\\BITBOX\\bitbox\\BitBoxSkeleton\\src\\main\\resources\\private_key.pem").generatePrivateKey();
+                PrivateKey myPrivateKey = new PrivateKeyReader("src/main/resources/private_key.pem").generatePrivateKey();
                 runClient(serverPort, request, myPrivateKey, argsBean);
             } catch (IOException e) {
                 log.warning("fail to get the private key");
