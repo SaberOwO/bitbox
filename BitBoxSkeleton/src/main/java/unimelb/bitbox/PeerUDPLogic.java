@@ -170,7 +170,7 @@ public class PeerUDPLogic extends Thread {
         }
         peerList.add(remoteHostPort);
         serverMain.peersMap.put(datagramSocket, peerList);
-        //   syncTimer();
+        syncTimer();
     }
 
     // (OK) Handle Handshake Refuse
@@ -195,7 +195,7 @@ public class PeerUDPLogic extends Thread {
                 peerList.add(remoteHostPort);
                 serverMain.peersMap.put(datagramSocket, peerList);
 
-                //    syncTimer();
+                syncTimer();
             }
         } catch (Exception e) {
             HostPort remoteHostPort = new HostPort((Document) message.get("hostPort"));

@@ -201,6 +201,15 @@ public class ClientServerLogic extends Thread {
             PeerLogic pl = new PeerLogic(newPeer, myPort,
                     socketWriter, socketReader, serverMain.fileSystemManager, serverMain, true, peerList, maxConnection);
             pl.start();
+            if (peerList.contains(hp)){
+                response.append("status", true);
+                response.append("message", "connected to peer");
+            }
+            else{
+                response.append("status", false);
+                response.append("message", "connection failed");
+            }
+            sendInfo(AESEncryption(response), out);
         }
         else{
             System.out.println("UDP mode connection");
@@ -225,27 +234,25 @@ public class ClientServerLogic extends Thread {
             PeerUDPLogic newpeer = new PeerUDPLogic(newsocket, serverMain.fileSystemManager,
                     serverMain, true, peerList, maxConnection, hp);
             newpeer.start();
-        }
-
-        sleep(2000);
-       boolean udpconnect = false;
-        for(DatagramSocket ds : serverMain.peersMap.keySet()){
+            boolean udpconnect = false;
+            for(DatagramSocket ds : serverMain.peersMap.keySet()){
 //            System.out.println(ds.getPort());
 //            System.out.println((int)port);
-            ArrayList<HostPort> temp = serverMain.peersMap.get(ds);
-            if (temp.contains(hp)){
+                ArrayList<HostPort> temp = serverMain.peersMap.get(ds);
+                if (temp.contains(hp)){
                     udpconnect = true;
+                }
             }
+            if (udpconnect){
+                response.append("status", true);
+                response.append("message", "connected to peer");
+            }
+            else{
+                response.append("status", false);
+                response.append("message", "connection failed");
+            }
+            sendInfo(AESEncryption(response), out);
         }
-        if (peerList.contains(hp) || udpconnect){
-            response.append("status", true);
-            response.append("message", "connected to peer");
-        }
-        else{
-            response.append("status", false);
-            response.append("message", "connection failed");
-        }
-        sendInfo(AESEncryption(response), out);
     }
     private void handleDisConnectPeer_Response(Document message, BufferedWriter out) throws IOException, Exception, InvalidKeySpecException, NoSuchAlgorithmException {
         System.out.println(message.toJson());
