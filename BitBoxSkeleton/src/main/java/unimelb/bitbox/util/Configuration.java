@@ -23,7 +23,7 @@ import java.util.logging.Logger;
 public class Configuration {
 	private static Logger log = Logger.getLogger(Configuration.class.getName());
     // the configuration file is stored in the root of the class path as a .properties file
-    private static final String CONFIGURATION_FILE = "BitBoxSkeleton/configuration.properties";
+    private static final String CONFIGURATION_FILE = "D:\\Study\\S2\\COMP90015 Distributed Systems\\BITBOX\\bitbox\\BitBoxSkeleton\\configuration.properties";
 
     private static final Properties properties;
 

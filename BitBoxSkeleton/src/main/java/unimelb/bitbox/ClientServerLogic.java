@@ -1,5 +1,6 @@
 package unimelb.bitbox;
 
+import unimelb.bitbox.util.Configuration;
 import unimelb.bitbox.util.Document;
 import unimelb.bitbox.util.FileSystemManager;
 import unimelb.bitbox.util.HostPort;
@@ -9,6 +10,7 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import java.io.*;
 import java.math.BigInteger;
+import java.net.DatagramSocket;
 import java.net.Socket;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
@@ -27,6 +29,7 @@ import static java.nio.charset.StandardCharsets.ISO_8859_1;
 
 public class ClientServerLogic extends Thread {
     private ArrayList<HostPort> peerList;
+    private HashMap<DatagramSocket, ArrayList<HostPort>> peersMap;
     private Socket socket;
     private HostPort myPort;
     private HashMap<Socket, BufferedWriter> socketWriter;
@@ -42,11 +45,13 @@ public class ClientServerLogic extends Thread {
     ClientServerLogic(Socket socket, HostPort myPort,
                       HashMap<Socket, BufferedWriter> socketWriter,
                       HashMap<Socket, BufferedReader> socketReader,
-                      ArrayList<HostPort> peerList, HashMap<String, String> keymap, ExecutorService tpool,
-                      FileSystemManager fileSystemManager, ServerMain serverMain,int maxConnection,  boolean isFirst){
+                      ArrayList<HostPort> peerList, HashMap<DatagramSocket, ArrayList<HostPort>> peersMap,
+                      HashMap<String, String> keymap, ExecutorService tpool,
+                      FileSystemManager fileSystemManager, ServerMain serverMain, int maxConnection, boolean isFirst){
         this.socket = socket;
         this.myPort = myPort;
         this.peerList = peerList;
+        this.peersMap = peersMap;
         this.socketReader = socketReader;
         this.socketWriter = socketWriter;
         this.keymap = keymap;
@@ -75,7 +80,7 @@ public class ClientServerLogic extends Thread {
     private void handleLogic(BufferedReader in, BufferedWriter out) throws Exception, IOException, NoSuchAlgorithmException {
         String originalMessage;
         while ((originalMessage = in.readLine()) != null) {
-            System.out.println("haha");
+//            System.out.println("haha");
             Document message = Document.parse(originalMessage);
             if (message.containsKey("command")){
                 log.info("AUTH_REQUEST");
@@ -85,14 +90,14 @@ public class ClientServerLogic extends Thread {
             else{
                 log.info("PayLoad");
                 Cipher cipher = Cipher.getInstance("AES");
-                System.out.println(secretKey);
+//                System.out.println(secretKey);
                 cipher.init(Cipher.DECRYPT_MODE, secretKey);
                 String encrypted = (String)message.get("payload");
 
-                System.out.println( Base64.getEncoder().encodeToString(secretKey.getEncoded()));
-                System.out.println(encrypted);
+//                System.out.println( Base64.getEncoder().encodeToString(secretKey.getEncoded()));
+//                System.out.println(encrypted);
                 byte[] aaa = Base64.getDecoder().decode(encrypted);
-                System.out.println(aaa.length);
+//                System.out.println(aaa.length);
                 String secretMessage = new String(cipher.doFinal(Base64.getDecoder().decode(encrypted)));
                 Document decryptDoc = Document.parse(secretMessage);
                 switch (decryptDoc.getString("command")) {
@@ -132,7 +137,7 @@ public class ClientServerLogic extends Thread {
             byte[] encodedSKey = secretKey.getEncoded();
             PublicKey pk = getPublicKey(keymap.get(identity));
             String content = new String(encodedSKey, ISO_8859_1);
-            System.out.println( Base64.getEncoder().encodeToString(encodedSKey));
+//            System.out.println( Base64.getEncoder().encodeToString(encodedSKey));
             byte[] encoded = Base64.getEncoder().encode(publicEnrypy(content, pk));
             String finencoded = new String(encoded, ISO_8859_1);
 //            System.out.println(encoded);
@@ -150,12 +155,26 @@ public class ClientServerLogic extends Thread {
     private void handleListPeers_Response(Document message, BufferedWriter out) throws IOException, Exception, InvalidKeySpecException, NoSuchAlgorithmException {
         Document response = new Document();
         response.append("command", "LIST_PEERS_RESPONSE");
-        ArrayList<Document> peers = new ArrayList<>();
-        for (HostPort peer: peerList) {
-            peers.add(peer.toDoc());
+        String mode = Configuration.getConfigurationValue("mode");
+        if (mode.equals("tcp")){
+            ArrayList<Document> peers = new ArrayList<>();
+            for (HostPort peer: peerList) {
+                peers.add(peer.toDoc());
+            }
+            response.append("peers", peers);
+            sendInfo(AESEncryption(response), out);
         }
-        response.append("peers", peers);
-        sendInfo(AESEncryption(response), out);
+        else{
+            ArrayList<Document> peers = new ArrayList<>();
+            for(DatagramSocket ds : peersMap.keySet()){
+                ArrayList<HostPort> temp = peersMap.get(ds);
+                for (HostPort peer : temp){
+                    peers.add(peer.toDoc());
+                }
+            }
+            response.append("peers", peers);
+            sendInfo(AESEncryption(response), out);
+        }
     }
     private void handleConnectPeer_Response(Document message, BufferedWriter out) throws IOException, Exception, InvalidKeySpecException, NoSuchAlgorithmException {
         String host = message.getString("host");
@@ -165,20 +184,57 @@ public class ClientServerLogic extends Thread {
         response.append("command", "CONNECT_PEER_RESPONSE");
         response.append("host", host);
         response.append("port", port);
-        if (peerList.contains(hp)){
-            response.append("status", false);
-            response.append("message", "connection already exists");
-            sendInfo(AESEncryption(response), out);
-            return;
+        String mode = Configuration.getConfigurationValue("mode");
+        if (mode.equals("tcp")){
+            System.out.println("TCP mode connection");
+            if (peerList.contains(hp)){
+                response.append("status", false);
+                response.append("message", "connection already exists");
+                sendInfo(AESEncryption(response), out);
+                return;
+            }
+            peerList.add(hp);
+            Socket newPeer = new Socket(host, (int)port);
+            PeerLogic pl = new PeerLogic(newPeer, myPort,
+                    socketWriter, socketReader, serverMain.fileSystemManager, serverMain, true, peerList, maxConnection);
+            pl.start();
         }
-        peerList.add(hp);
-        Socket newPeer = new Socket(host, (int)port);
-        PeerLogic pl = new PeerLogic(newPeer, myPort,
-                socketWriter, socketReader, serverMain.fileSystemManager, serverMain, true, peerList, maxConnection);
-        pl.start();
-        sleep(2000);
+        else{
+            System.out.println("UDP mode connection");
+            boolean exist = false;
+            for(DatagramSocket ds : peersMap.keySet()){
+                ArrayList<HostPort> temp = peersMap.get(ds);
+                if (temp.contains(hp)){
+                    exist = true;
+                }
+            }
+            if(exist){
+                response.append("status", false);
+                response.append("message", "connection already exists");
+                sendInfo(AESEncryption(response), out);
+                return;
+            }
 
-        if (peerList.contains(hp)){
+            DatagramSocket newsocket = new DatagramSocket();
+            ArrayList<HostPort> newMemorizedList = new ArrayList<>();
+            newMemorizedList.add(hp);
+            peersMap.put(newsocket, newMemorizedList);
+            PeerUDPLogic newpeer = new PeerUDPLogic(newsocket, serverMain.fileSystemManager,
+                    serverMain, true, peerList, maxConnection, hp);
+            newpeer.start();
+        }
+
+        sleep(2000);
+       boolean udpconnect = false;
+        for(DatagramSocket ds : peersMap.keySet()){
+//            System.out.println(ds.getPort());
+//            System.out.println((int)port);
+            ArrayList<HostPort> temp = peersMap.get(ds);
+            if (temp.contains(hp)){
+                    udpconnect = true;
+            }
+        }
+        if (peerList.contains(hp) || udpconnect){
             response.append("status", true);
             response.append("message", "connected to peer");
         }
@@ -197,16 +253,36 @@ public class ClientServerLogic extends Thread {
         response.append("host", host);
         response.append("port", port);
         HostPort hp = new HostPort(host,(int)port);
-        if (peerList.contains(hp)){
-            peerList.remove(hp);
-            response.append("status", true);
-            response.append("message", "disconnected from peer");
+        String mode = Configuration.getConfigurationValue("mode");
+        if (mode == "tcp") {
+            if (peerList.contains(hp)) {
+                peerList.remove(hp);
+                response.append("status", true);
+                response.append("message", "disconnected from peer");
+            } else {
+                response.append("status", false);
+                response.append("message", "connection not active");
+            }
+            sendInfo(AESEncryption(response), out);
         }
         else{
-            response.append("status", false);
-            response.append("message", "connection not active");
+            boolean exist = false;
+            for(DatagramSocket ds : peersMap.keySet()){
+                ArrayList<HostPort> temp = peersMap.get(ds);
+                if (temp.contains(hp)){
+                    exist = true;
+                    temp.remove(hp);
+                }
+            }
+            if (exist) {
+                response.append("status", true);
+                response.append("message", "disconnected from peer");
+            } else {
+                response.append("status", false);
+                response.append("message", "connection not active");
+            }
+            sendInfo(AESEncryption(response), out);
         }
-        sendInfo(AESEncryption(response), out);
     }
     public static byte[] publicEnrypy(String express,PublicKey pub) throws Exception {
         Cipher cipher = Cipher.getInstance("RSA");
@@ -269,11 +345,11 @@ public class ClientServerLogic extends Thread {
         String encoded = new String(Base64.getEncoder().encode(secretMessage.getBytes(ISO_8859_1)),ISO_8859_1);
 
 
-        System.out.println(cipher.doFinal(response.toJson().getBytes(ISO_8859_1)).length);
-        System.out.println(secretMessage);
-        System.out.println(secretMessage.length());
-        System.out.println(encoded);
-        System.out.println(encoded.length());
+//        System.out.println(cipher.doFinal(response.toJson().getBytes(ISO_8859_1)).length);
+//        System.out.println(secretMessage);
+//        System.out.println(secretMessage.length());
+//        System.out.println(encoded);
+//        System.out.println(encoded.length());
         finalResponse.append("payload",encoded);
         return finalResponse;
     }
