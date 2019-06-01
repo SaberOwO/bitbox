@@ -11,6 +11,7 @@ import javax.crypto.SecretKey;
 import java.io.*;
 import java.math.BigInteger;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketException;
 import java.security.KeyFactory;
@@ -264,9 +265,20 @@ public class ClientServerLogic extends Thread {
         response.append("port", port);
         HostPort hp = new HostPort(host,(int)port);
         String mode = Configuration.getConfigurationValue("mode");
-        if (mode == "tcp") {
+        if (mode.equals("tcp")) {
             if (peerList.contains(hp)) {
                 peerList.remove(hp);
+                for (Socket socket: serverMain.socketWriter.keySet()){
+                    String remoteAddress = socket.getInetAddress().toString();
+                    remoteAddress = remoteAddress.substring(1);
+                    int remotePort = socket.getPort();
+
+                    if(remoteAddress.equals(host) && remotePort== (int) port){
+                        serverMain.socketWriter.remove(socket);
+                        break;
+                    }
+                }
+
                 response.append("status", true);
                 response.append("message", "disconnected from peer");
             } else {

@@ -19,7 +19,7 @@ import unimelb.bitbox.util.FileSystemManager.FileSystemEvent;
 public class ServerMain implements FileSystemObserver {
     private static Logger log = Logger.getLogger(ServerMain.class.getName());
     protected FileSystemManager fileSystemManager;
-    private HashMap<Socket, BufferedWriter> socketWriter;
+    public HashMap<Socket, BufferedWriter> socketWriter;
     private static String mode = Configuration.getConfigurationValue("mode");
     private static int timeout = Integer.valueOf(Configuration.getConfigurationValue("timeout"));
     private static int packageSize = Integer.valueOf(Configuration.getConfigurationValue("packetSize"));
