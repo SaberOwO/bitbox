@@ -62,7 +62,7 @@ public class PeerUDPLogic extends Thread {
                 datagramSocket.receive(receivedPacket);
                 if (!receivedPacket.getAddress().equals(InetAddress.getByName(localIp))) {
                     handleLogic(datagramSocket, receivedPacket);
-                    //   syncTimer();
+                    syncTimer();
                 }
             } catch (IOException e) {
                 // e.printStackTrace();
